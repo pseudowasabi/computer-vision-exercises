@@ -68,13 +68,59 @@ def cross_correlation_1d(img, kernel):
         #print()
     #print(filtered_img)
 
+    filtered_img = filtered_img.astype('uint8')
+    return filtered_img
+
 
 def cross_correlation_2d(img, kernel):
     # 1. padding image
+    img_size = img.shape[0]
+    kernel_size = kernel.shape[0]
+    padded_size = img_size + kernel_size - 1
+    padded_img = np.zeros((padded_size, padded_size))
+
+    for i in range(padded_size):
+        i_prime = i - (kernel_size // 2)
+        for j in range(padded_size):
+            j_prime = j - (kernel_size // 2)
+            if 0 <= i_prime < img_size:
+                if 0 <= j_prime < img_size:
+                    #padded_img[i][j] = -img[i_prime][j_prime]
+                    padded_img[i][j] = img[i_prime][j_prime]
+                elif j_prime < 0: # West
+                    padded_img[i][j] = img[i_prime][0]
+                elif j_prime >= img_size: # East
+                    padded_img[i][j] = img[i_prime][img_size - 1]
+            elif i_prime < 0:
+                if 0 <= j_prime < img_size: # North
+                    padded_img[i][j] = img[0][j_prime]
+                elif j_prime < 0: # NW
+                    padded_img[i][j] = img[0][0]
+                elif j_prime >= img_size: # NE
+                    padded_img[i][j] = img[0][img_size - 1]
+            elif i_prime >= img_size:
+                if 0 <= j_prime < img_size: # South
+                    padded_img[i][j] = img[img_size - 1][j_prime]
+                elif j_prime < 0: # SW
+                    padded_img[i][j] = img[img_size - 1][0]
+                elif j_prime >= img_size: # SE
+                    padded_img[i][j] = img[img_size - 1][img_size - 1]
+    #print(padded_img)
 
     # 2. apply cross correlation using iteration
+    filtered_img = np.zeros((img_size, img_size))
+    for x in range(img_size):
+        for y in range(img_size):
+            # at each (x, y) point, cross correlation using kernel is calculated.
+            for i in range(x, x + kernel_size):
+                for j in range(y, y + kernel_size):
+                    filtered_img[x][y] += (padded_img[i][j] * kernel[i - x][j - y])
+            #print('%.04f'%(filtered_img[x][y]), end=' ')
+        #print()
+    #print(filtered_img)
 
-    pass
+    filtered_img = filtered_img.astype('uint8')
+    return filtered_img
 
 # if np.arange, sqrt, pi, exp, multiply functions are not allowed to use,
 # below code should be modified !!!
@@ -125,8 +171,9 @@ for i in range(size):
     for j in range(size):
         img[i][j] = img_a[i] * img_a[j]
 #print(img.shape)
-print("original img")
-print(img)
+#print("original img")
+#print(img)
+cv2.imshow("Lenna original", img_lenna)
 
 '''
 # 1-d kernel cross correlationing
@@ -135,6 +182,13 @@ kernel = np.array([kernel]).transpose()
 print(kernel)
 cross_correlation_1d(img, kernel)
 '''
+
+kernel = get_gaussian_filter_2d(5, 1)
+filtered_img_lenna = cross_correlation_2d(img_lenna, kernel)
+#print("filtered_img")
+#print(filtered_img)
+cv2.imshow("Lenna Gaussian filtered", filtered_img_lenna)
+print(filtered_img_lenna.shape)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
