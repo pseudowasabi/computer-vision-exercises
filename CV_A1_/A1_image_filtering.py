@@ -58,15 +58,22 @@ def cross_correlation_1d(img, kernel):
             if dir == 0:
                 filtered_img[i][j] = sum(np.multiply(padded_img[i][j:j+kernel_size], kernel))
             elif dir == 1:
-                pass
-                #print(padded_img[i:i+kernel_size][j])
-                #filtered_img[i][j] = sum(np.multiply(padded_img[i:i+kernel_size][j], kernel))
+                #pass
+                k_size_patch_from_padded_img = np.zeros(kernel_size)
+                for x in range(i, i+kernel_size):
+                    k_size_patch_from_padded_img[x-i] = padded_img[x][j]
+                #print(k_size_patch_from_padded_img)
+                filtered_img[i][j] = sum(np.multiply(k_size_patch_from_padded_img, kernel))
             #print('%.04f'%filtered_img[i][j], end=' ')
         #print()
     #print(filtered_img)
 
 
 def cross_correlation_2d(img, kernel):
+    # 1. padding image
+
+    # 2. apply cross correlation using iteration
+
     pass
 
 # if np.arange, sqrt, pi, exp, multiply functions are not allowed to use,
@@ -120,11 +127,14 @@ for i in range(size):
 #print(img.shape)
 print("original img")
 print(img)
+
+'''
+# 1-d kernel cross correlationing
 kernel = get_gaussian_filter_1d(5, 1)
 kernel = np.array([kernel]).transpose()
 print(kernel)
 cross_correlation_1d(img, kernel)
-
+'''
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
