@@ -13,60 +13,62 @@ import time
 ###
 
 def cross_correlation_1d(img, kernel):
-    # filtering using 1d kernel
-
     # 1. check direction of kernel and flatten
     dir = 0     # dir (direction) is 0 when kernel is horizontal, 1 when vertical.
     if len(kernel.shape) != 1: # if the shape is not an 1-d ndarray,
         if kernel.shape[1] == 1: # vertical kernel
             dir = 1
         kernel = kernel.flatten() # flatten to 1-d ndarray
-    #img_size_0 = img.shape[0]
-    #img_size_1 = img.shape[1]
-    kernel_size = kernel.shape[0]
+    size0 = img.shape[0]
+    size1 = img.shape[1]
+    k_size = kernel.shape[0]
+    diff = k_size // 2
 
     # 2. padding original image (img)
-    #padded_size = img_size_0 + kernel_size - 1
     if dir == 0:
-        padded_size = img.shape[1] + kernel_size - 1
-        padded_img = np.zeros((img.shape[0], padded_size))
+        padded_size = size1 + k_size - 1
+        padded_img = np.zeros((size0, padded_size))
 
-        for i in range(img.shape[0]):
-            for j in range(padded_size):
-                j_prime = j - (kernel_size // 2)
-                if 0 <= j_prime < img.shape[1]:
-                    padded_img[i][j] = img[i][j_prime]
-                elif j_prime < 0:
-                    padded_img[i][j] = img[i][0]
-                else:
-                    padded_img[i][j] = img[i][img.shape[1]-1]
-    elif dir == 1:
-        padded_size = img.shape[0] + kernel_size - 1
-        padded_img = np.zeros((padded_size, img.shape[1]))
+        j_range0 = range(diff)
+        j_range1 = range(size1)
+        j_range2 = range(size1+diff, size1+2*diff)
 
-        for j in range(img.shape[1]):
-            for i in range(padded_size):
-                i_prime = i - (kernel_size // 2)
-                if 0 <= i_prime < img.shape[0]:
-                    padded_img[i][j] = img[i_prime][j]
-                elif i_prime < 0:
-                    padded_img[i][j] = img[0][j]
-                else:
-                    padded_img[i][j] = img[img.shape[0]-1][j]
+        for i in range(size0):
+            for j in j_range0:
+                padded_img[i][j] = img[i][0]
+            for j in j_range1:
+                padded_img[i][j+diff] = img[i][j]
+            for j in j_range2:
+                padded_img[i][j] = img[i][size1-1]
+    else: # dir == 1 (vertical cases)
+        padded_size = size0 + k_size - 1
+        padded_img = np.zeros((padded_size, size1))
+
+        j_range0 = range(diff)
+        j_range1 = range(size0)
+        j_range2 = range(size0+diff, size0+2*diff)
+
+        for j in range(size1):
+            for i in j_range0:
+                padded_img[i][j] = img[0][j]
+            for i in j_range1:
+                padded_img[i+diff][j] = img[i][j]
+            for i in j_range2:
+                padded_img[i][j] = img[size0-1][j]
 
     #print(padded_img)
     #print()
 
     # 3. apply cross correlation using iteration
-    filtered_img = np.zeros((img.shape[0], img.shape[1]))
-    for i in range(img.shape[0]):
-        for j in range(img.shape[1]):
+    filtered_img = np.zeros((size0, size1))
+    for i in range(size0):
+        for j in range(size1):
             if dir == 0:
-                filtered_img[i][j] = sum(np.multiply(padded_img[i][j:j+kernel_size], kernel))
+                filtered_img[i][j] = sum(np.multiply(padded_img[i][j:j+k_size], kernel))
             elif dir == 1:
                 #pass
-                k_size_patch_from_padded_img = np.zeros(kernel_size)
-                for x in range(i, i+kernel_size):
+                k_size_patch_from_padded_img = np.zeros(k_size)
+                for x in range(i, i+k_size):
                     k_size_patch_from_padded_img[x-i] = padded_img[x][j]
                 #print(k_size_patch_from_padded_img)
                 filtered_img[i][j] = sum(np.multiply(k_size_patch_from_padded_img, kernel))
@@ -74,9 +76,7 @@ def cross_correlation_1d(img, kernel):
         #print()
     #print(filtered_img)
 
-    filtered_img = filtered_img.astype('uint8')
-    return filtered_img # need to be checked
-
+    return filtered_img
 
 def cross_correlation_2d(img, kernel):
     # 1. padding image - about O(N^2).
@@ -284,6 +284,9 @@ print(' ---> done. /elapsed time:', elapsed_time_)
 elapsed_time_ += elapsed_time
 print(' == whole 1-d kernel filtering elapsed time:', elapsed_time_)
 
+cv2.imshow('1-d', filtered_img_1d_lenna.astype(dtype='uint8'))
+cv2.waitKey(0)
+
 print('filtering... (2-d kernel)', end='')
 start_time = time.process_time()
 filtered_img_2d_lenna = cross_correlation_2d(img_lenna, kernel_2d)
@@ -291,6 +294,20 @@ elapsed_time = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time)
 print(' == comparison of elapsed time (1-d time) - (2-d time):', elapsed_time_-elapsed_time, end='\n\n')
 
+cv2.imshow('2-d', filtered_img_2d_lenna.astype(dtype='uint8'))
+cv2.waitKey(0)
+
+
+
+subtracted_img = np.zeros((img_lenna.shape[0], img_lenna.shape[1]))
+_sum = 0
+for i in range(img_lenna.shape[0]):
+    for j in range(img_lenna.shape[1]):
+        subtracted_img[i][j] = filtered_img_1d_lenna[i][j] - filtered_img_2d_lenna[i][j]
+        _sum += subtracted_img[i][j]
+
+cv2.imshow("subtraction of 1-d filtering img and 2-d filtering img", subtracted_img)
+print("summation of subtraction:", round(_sum, 10))
 
 
 '''
@@ -324,7 +341,12 @@ for i in range(size):
 
 print('original img')
 print(img)
-kernel = get_gaussian_filter_2d(5, 1)
-print('padded img')
-cross_correlation_2d(img, kernel)
+kernel = get_gaussian_filter_1d(5, 1)
+print('padded img - horizontal')
+cross_correlation_1d(img, kernel)
+
+print('padded img - vertical')
+kernel = np.array([kernel]).transpose()
+cross_correlation_1d(img, kernel)
+#cross_correlation_2d(img, kernel)
 '''
