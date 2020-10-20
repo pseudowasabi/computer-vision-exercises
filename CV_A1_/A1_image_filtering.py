@@ -6,6 +6,7 @@ A1_image_filtering.py
 import cv2
 import numpy as np
 import math
+import time
 
 ###
 # 1-1. Image Filtering by Cross-Correlation
@@ -53,8 +54,8 @@ def cross_correlation_1d(img, kernel):
                 else:
                     padded_img[i][j] = img[img.shape[0]-1][j]
 
-    print(padded_img)
-    print()
+    #print(padded_img)
+    #print()
 
     # 3. apply cross correlation using iteration
     filtered_img = np.zeros((img.shape[0], img.shape[1]))
@@ -158,7 +159,7 @@ def get_gaussian_filter_1d(size, sigma):
     coeff_normalize = 1 / _sum
     for i in range(size): # normalize
         kernel[i] *= coeff_normalize
-    return kernel
+    return np.array(kernel)
 
 def get_gaussian_filter_2d(size, sigma):
     # return gaussian filter for 2-d
@@ -204,10 +205,10 @@ sigmas = [1, 6, 11]
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 # for "lenna.png"
-print('filtering for "lenna.png" initiate.')
+print(' * filtering for "lenna.png" initiate.')
 img_lenna = cv2.imread('./lenna.png', cv2.IMREAD_GRAYSCALE)
 final_filtered_lenna = np.zeros((img_lenna.shape[0]*3, img_lenna.shape[1]*3))
-
+'''
 for i in range(3):
     for j in range(3):
         k = k_size[i]
@@ -226,12 +227,12 @@ for i in range(3):
         print(' ---> done.')
 
 cv2.imwrite('./result/part_1_gaussian_filtered_lenna.png', final_filtered_lenna)
-print('filtered image of "lenna.png" saved to ./result/ directory.\n')
+print(' * filtered image of "lenna.png" saved to ./result/ directory.\n')
 cv2.imshow('Gaussian filtering of "Lenna.png" by Yoseob Kim', final_filtered_lenna)
 cv2.waitKey(0)
 
 # for "shapes.png"
-print('filtering for "shapes.png" initiate.')
+print(' * filtering for "shapes.png" initiate.')
 img_shapes = cv2.imread('./shapes.png', cv2.IMREAD_GRAYSCALE)
 final_filtered_shapes = np.zeros((img_shapes.shape[0] * 3, img_shapes.shape[1] * 3))
 
@@ -253,8 +254,62 @@ for i in range(3):
         print(' ---> done.')
 
 cv2.imwrite('./result/part_1_gaussian_filtered_shapes.png', final_filtered_shapes)
-print('filtered image of "shapes.png" saved to ./result/ directory.\n')
+print(' * filtered image of "shapes.png" saved to ./result/ directory.\n')
 cv2.imshow('Gaussian filtering of "Shapes.png" by Yoseob Kim', final_filtered_shapes)
+cv2.waitKey(0)
+'''
+
+## e) comparison btw 1-d kernel correlation superpositioning and 2-d kernel filtering.
+
+kernel_1d_h = get_gaussian_filter_1d(17, 6)
+kernel_2d = get_gaussian_filter_2d(17, 6)
+kernel_1d_v = np.array([kernel_1d_h]).transpose()
+
+print('1-2. e) comparison btw 1-d kernel correlation superpositioning and 2-d kernel filtering.')
+
+# for "lenna.png"
+print(' * for "lenna.png"')
+print('filtering... (1-d horizontal kernel)', end='')
+
+start_time = time.process_time()
+filtered_img_1d_lenna = cross_correlation_1d(img_lenna, kernel_1d_h)
+elapsed_time = time.process_time() - start_time
+print(' ---> done. /elapsed time:', elapsed_time)
+
+print('filtering... (1-d vertical kernel)', end='')
+stqrt_time = time.process_time()
+filtered_img_1d_lenna = cross_correlation_1d(filtered_img_1d_lenna, kernel_1d_v)
+elapsed_time_ = time.process_time() - start_time
+print(' ---> done. /elapsed time:', elapsed_time_)
+elapsed_time_ += elapsed_time
+print(' == whole 1-d kernel filtering elapsed time:', elapsed_time_)
+
+print('filtering... (2-d kernel)', end='')
+start_time = time.process_time()
+filtered_img_2d_lenna = cross_correlation_2d(img_lenna, kernel_2d)
+elapsed_time = time.process_time() - start_time
+print(' ---> done. /elapsed time:', elapsed_time)
+print(' == comparison of elapsed time (1-d time) - (2-d time):', elapsed_time_-elapsed_time, end='\n\n')
+
+
+
+'''
+# for "shapes.png"
+
+print('filtering with 1-d horizontal kernel for "shapes.png"', end='')
+filtered_img_1d_shapes = cross_correlation_1d(img_shapes, kernel_1d_h)
+print(' ---> done.')
+
+print('filtering with 1-d vertical kernel for "shapes.png"', end='')
+filtered_img_1d_shapes = cross_correlation_1d(filtered_img_1d_shapes, kernel_1d_v)
+print(' ---> done.')
+
+print('filtering with 2-d kernel for "shapes.png"', end='')
+filtered_img_2d_shapes = cross_correlation_2d(img_shapes, kernel_2d)
+print(' ---> done.')
+'''
+
+
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
