@@ -40,6 +40,7 @@ def compute_corner_response(img):
     _k = 0.04
     _max_val = 0
 
+    elapsed_ = list(range(0, size0, size0 // 20))
     for x in range(size0):
         for y in range(size1):
             # i. subtract mean of each image patch
@@ -83,12 +84,19 @@ def compute_corner_response(img):
             if R[x][y] > _max_val:
                 _max_val = R[x][y]
 
-    normalizer = 1.
-    if _max_val != 0:
-        normalizer = 1 / _max_val
+        if x in elapsed_:
+            print('.', end='')
+
+    #print("_max_val:", _max_val)
+    #normalizer = 1.
+    #if _max_val != 0:
+    #    normalizer = 1 / _max_val
+    #normalizer = 1 / 255
+
+    #normalizer = 1 / np.linalg.norm(R)
     for x in range(size0):
         for y in range(size1):
-            R[x][y] = operator.__mul__(R[x][y], normalizer)
+            R[x][y] = operator.__truediv__(R[x][y], _max_val)
     return R
 
 
@@ -119,9 +127,9 @@ filtered_img_lenna = my_gaussian_filtering(img_lenna, 7, 1.5)
 R_shapes = compute_corner_response(filtered_img_shapes)
 cv2.imshow("corner response of shapes", R_shapes)
 cv2.waitKey(0)
-R_lenna = compute_corner_response(filtered_img_lenna)
-cv2.imshow("corner response of lenna", R_lenna)
-cv2.waitKey(0)
+#R_lenna = compute_corner_response(filtered_img_lenna)
+#cv2.imshow("corner response of lenna", R_lenna)
+#cv2.waitKey(0)
 
 
 
@@ -131,12 +139,33 @@ cv2.waitKey(0)
 
 ## a) change corner response to green
 
+def corner_response_embedding(R, img):
+    # convert gray scale to rgb channel
+    normalized_img_shapes = cv2.normalize(img_shapes, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    rgb_img = cv2.cvtColor(normalized_img_shapes, cv2.COLOR_GRAY2BGR)
+
+    # thresholding (greater than 0.1)
+    for i in range(R.shape[0]):
+        for j in range(R.shape[1]):
+            if R[i][j] > 0.1:
+                cv2.circle(rgb_img, (j, i), 5, (0, 255, 0), 1)
+            else:
+                R[i][j] = 0
+
+    return R, rgb_img
+
+R_shapes, rgb_img_shapes = corner_response_embedding(R_shapes, filtered_img_shapes)
+
+cv2.imshow("circled!", rgb_img_shapes)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
 ## b) show image and save
 
 ## c) nms
 
 _winSize = 11
 suppressed_R_shapes = non_maximum_suppression_win(R_shapes, _winSize)
-suppressed_R_lenna = non_maximum_suppression_win(R_lenna, _winSize)
+#suppressed_R_lenna = non_maximum_suppression_win(R_lenna, _winSize)
 
 ## d) show image and save
