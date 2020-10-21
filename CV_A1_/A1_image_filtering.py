@@ -111,11 +111,14 @@ cv2.waitKey(0)
 
 ## e) comparison btw 1-d kernel correlation superpositioning and 2-d kernel filtering.
 
-kernel_1d_h = get_gaussian_filter_1d(17, 6)
-kernel_2d = get_gaussian_filter_2d(17, 6)
+e_k_size = 17
+e_sigma = 6
+kernel_1d_h = get_gaussian_filter_1d(e_k_size, e_sigma)
+kernel_2d = get_gaussian_filter_2d(e_k_size, e_sigma)
 kernel_1d_v = np.array([kernel_1d_h]).transpose()
 
 print('1-2. e) comparison btw 1-d kernel correlation superpositioning and 2-d kernel filtering.')
+print(' *** kernel size = {0}, sigma = {1}'.format(e_k_size, e_sigma))
 
 # for "lenna.png"
 print(' * for "lenna.png"')
@@ -138,6 +141,7 @@ print(' == whole 1-d kernel filtering elapsed time:', elapsed_time_)
 #cv2.waitKey(0)
 
 print('filtering... (2-d kernel), ** time consuming alert (about 62.16sec) **') # , end='')
+print(' [about 20 dots will be shown to be done]')
 start_time = time.process_time()
 filtered_img_2d_lenna = cross_correlation_2d(img_lenna, kernel_2d)
 elapsed_time = time.process_time() - start_time
@@ -180,6 +184,7 @@ print(' == whole 1-d kernel filtering elapsed time:', elapsed_time_)
 #cv2.waitKey(0)
 
 print('filtering... (2-d kernel), ** time consuming alert (about 50.01sec) **') # , end='')
+print(' [about 20 dots will be shown to be done]')
 start_time = time.process_time()
 filtered_img_2d_shapes = cross_correlation_2d(img_shapes, kernel_2d)
 elapsed_time = time.process_time() - start_time

@@ -6,6 +6,7 @@ GitHub Link: https://github.com/pseudowasabi/computer-vision-exercises/tree/mast
 
 import numpy as np
 import math
+import operator
 
 ###
 # 1-1. Image Filtering by Cross-Correlation
@@ -65,12 +66,12 @@ def cross_correlation_1d(img, kernel):
             if dir == 0:    # horizontal kernel
                 _sum = 0
                 for j in range(k_size):
-                    _sum += (padded_img[x][y+j] * kernel[j])
+                    _sum = operator.__add__(_sum, operator.__mul__(padded_img[x][y+j], kernel[j]))
                 filtered_img[x][y] = _sum
             elif dir == 1:  # vertical kernel
                 _sum = 0
                 for i in range(k_size):
-                    _sum += (padded_img[x+i][y] * kernel[i])
+                    _sum = operator.__add__(_sum, operator.__mul__(padded_img[x+i][y], kernel[i]))
                 filtered_img[x][y] = _sum
             #print('%.04f'%filtered_img[i][j], end=' ')
         #print()
@@ -78,45 +79,55 @@ def cross_correlation_1d(img, kernel):
 
     return filtered_img
 
+def image_padding_2d(img, padd_width, type=0):
+    size0 = img.shape[0]
+    size1 = img.shape[1]
+
+    p_size0 = size0 + 2 * padd_width
+    p_size1 = size1 + 2 * padd_width
+    padded_img = np.zeros((p_size0, p_size1))
+    diff = padd_width
+
+    j_range0 = range(diff)
+    j_range1 = range(size1)
+    j_range2 = range(size1 + diff, size1 + 2 * diff)
+    for i in range(size0):
+        i_prime = i + diff
+        for j in j_range1:
+            # center
+            padded_img[i_prime][j + diff] = img[i][j]
+        if type == 0:
+            for j in j_range0:
+                # west
+                padded_img[i_prime][j] = img[i][0]
+            for j in j_range2:
+                # east
+                padded_img[i_prime][j] = img[i][size1 - 1]
+    if type == 0:
+        for i in range(diff):  # upper
+            for j in j_range0:
+                padded_img[i][j] = img[0][0]
+            for j in j_range1:
+                padded_img[i][j + diff] = img[0][j]
+            for j in j_range2:
+                padded_img[i][j] = img[0][size1 - 1]
+        for i in range(size0 + diff, size0 + 2 * diff):  # lower
+            for j in j_range0:
+                padded_img[i][j] = img[size0 - 1][0]
+            for j in j_range1:
+                padded_img[i][j + diff] = img[size0 - 1][j]
+            for j in j_range2:
+                padded_img[i][j] = img[size0 - 1][size1 - 1]
+    # print(padded_img)
+
+    return padded_img
+
 def cross_correlation_2d(img, kernel):
     # 1. padding image - about O(N^2).
     size0 = img.shape[0]
     size1 = img.shape[1]
     k_size = kernel.shape[0]
-    p_size0 = size0 + k_size - 1
-    p_size1 = size1 + k_size - 1
-    padded_img = np.zeros((p_size0, p_size1))
-    diff = k_size // 2
-
-    j_range0 = range(diff)
-    j_range1 = range(size1)
-    j_range2 = range(size1+diff, size1+2*diff)
-    for i in range(size0):
-        i_prime = i + diff
-        for j in j_range0:
-            # west
-            padded_img[i_prime][j] = img[i][0]
-        for j in j_range1:
-            # center
-            padded_img[i_prime][j+diff] = img[i][j]
-        for j in j_range2:
-            # east
-            padded_img[i_prime][j] = img[i][size1-1]
-    for i in range(diff): # upper
-        for j in j_range0:
-            padded_img[i][j] = img[0][0]
-        for j in j_range1:
-            padded_img[i][j+diff] = img[0][j]
-        for j in j_range2:
-            padded_img[i][j] = img[0][size1-1]
-    for i in range(size0+diff, size0+2*diff): # lower
-        for j in j_range0:
-            padded_img[i][j] = img[size0-1][0]
-        for j in j_range1:
-            padded_img[i][j+diff] = img[size0-1][j]
-        for j in j_range2:
-            padded_img[i][j] = img[size0-1][size1-1]
-    #print(padded_img)
+    padded_img = image_padding_2d(img, k_size // 2)
 
     # 2. apply cross correlation using iteration - O(N^2 * K^2).
     filtered_img = np.zeros((size0, size1))
@@ -129,7 +140,7 @@ def cross_correlation_2d(img, kernel):
             _sum = 0
             for i in range(x, x + k_size):
                 for j in range(y, y + k_size):
-                    _sum += (padded_img[i][j] * kernel[i - x][j - y])
+                    _sum = operator.__add__(_sum, operator.__mul__(padded_img[i][j], kernel[i - x][j - y]))
             filtered_img[x][y] = _sum
             #print('%.04f'%(filtered_img[x][y]), end=' ')
         #print()
