@@ -187,3 +187,49 @@ def get_gaussian_filter_2d(size, sigma):
         for j in range(size):
             kernel[i][j] *= coeff_normalize
     return kernel
+
+
+### ***
+# for Part #2, #3
+###
+
+##
+## 1. Gaussian filtering
+
+def my_gaussian_filtering(img, kernel_size, sigma):
+    kernel_h = get_gaussian_filter_1d(kernel_size, sigma)
+    kernel_v = np.array([kernel_h]).transpose()
+
+    filtered_img = cross_correlation_1d(img, kernel_h)
+    filtered_img = cross_correlation_1d(filtered_img, kernel_v)
+
+    return filtered_img
+
+
+##
+## 2. Sobel filtering
+
+# ** set Sobel filter kernels as global variables
+derivative_kernel = [-1, 0, +1]  # correlation ; [1, 0, -1] is for convolution.
+blurring_filter = [1, 2, 1]
+# for faster operation, use superposition of 1-d kernel filtering method.
+sobel_x_0 = np.array(derivative_kernel)
+sobel_x_1 = np.array([blurring_filter]).transpose()
+sobel_y_0 = np.array(blurring_filter)
+sobel_y_1 = np.array([derivative_kernel]).transpose()
+# below is 2-d kernel for sobel cross-correlation kernel.
+# sobel_x = sobel_x_1.dot(np.array([sobel_x_0]))
+# sobel_y = sobel_y_1.dot(np.array([sobel_y_0]))
+# print(sobel_x)
+# print(sobel_y)
+
+def my_sobel_filtering(img):
+    # derivatives along x direction
+    sobel_img_x = cross_correlation_1d(img, sobel_x_0)
+    sobel_img_x = cross_correlation_1d(sobel_img_x, sobel_x_1)
+
+    # derivatives along y direction
+    sobel_img_y = cross_correlation_1d(img, sobel_y_0)
+    sobel_img_y = cross_correlation_1d(sobel_img_y, sobel_y_1)
+
+    return sobel_img_x, sobel_img_y
