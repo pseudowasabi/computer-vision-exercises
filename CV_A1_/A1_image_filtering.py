@@ -315,7 +315,7 @@ for i in range(img_lenna.shape[0]):
         subtracted_img[i][j] = filtered_img_1d_lenna[i][j] - filtered_img_2d_lenna[i][j]
         _sum += abs(subtracted_img[i][j])
 
-cv2.imshow("subtraction of 1-d filtering img and 2-d filtering img", subtracted_img)
+cv2.imshow("pixel-wise difference map of lenna", subtracted_img)
 print(' *** sum of absolute intensity difference:', _sum) # , end='\n\n')
 print(' ## notice: press any key (on image window) to continue.\n')
 cv2.waitKey(0)
@@ -357,9 +357,9 @@ for i in range(img_shapes.shape[0]):
         subtracted_img[i][j] = filtered_img_1d_shapes[i][j] - filtered_img_2d_shapes[i][j]
         _sum += abs(subtracted_img[i][j])
 
-cv2.imshow("subtraction of 1-d filtering img and 2-d filtering img", subtracted_img)
+cv2.imshow("pixel-wise difference map of shapes", subtracted_img)
 print(' *** sum of absolute intensity difference:', _sum) # , end='\n\n')
-# print(' ## notice: press any key (on image window) to continue.\n')
+print(' ## notice: P#1 done. press any key (on image window) to finish.\n')
 
 
 cv2.waitKey(0)
