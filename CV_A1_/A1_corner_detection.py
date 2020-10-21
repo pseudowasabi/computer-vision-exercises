@@ -101,11 +101,29 @@ def compute_corner_response(img):
 
 
 def non_maximum_suppression_win(R, winSize):
-    pass
-
     ## c) compute local maximas by NMS
+    #* input argument R is already thresholded in corner_response_embedding func.
+    x_bound = R.shape[0] - winSize + 1
+    y_bound = R.shape[1] - winSize + 1
 
-    ## d) ...
+    elapsed_ = list(range(0, R.shape[0], R.shape[1] // 20))
+    for x in range(0, x_bound, winSize // 2):
+        for y in range(0, y_bound, winSize // 2):
+            local_maxima = R[x][y]
+            lm_x = x
+            lm_y = y
+            for i in range(x, x + winSize):
+                for j in range(y, y + winSize):
+                    if R[i][j] > local_maxima:
+                        local_maxima = R[i][j]
+                        lm_x = i
+                        lm_y = j
+                    R[i][j] = 0
+            # print(x, y, local_maxima, lm_x, lm_y)
+            R[lm_x][lm_y] = local_maxima
+        if x in elapsed_:
+            print('.', end='')
+    return R
 
 
 ###
@@ -127,9 +145,9 @@ filtered_img_lenna = my_gaussian_filtering(img_lenna, 7, 1.5)
 R_shapes = compute_corner_response(filtered_img_shapes)
 cv2.imshow("corner response of shapes", R_shapes)
 cv2.waitKey(0)
-#R_lenna = compute_corner_response(filtered_img_lenna)
-#cv2.imshow("corner response of lenna", R_lenna)
-#cv2.waitKey(0)
+R_lenna = compute_corner_response(filtered_img_lenna)
+cv2.imshow("corner response of lenna", R_lenna)
+cv2.waitKey(0)
 
 
 
@@ -141,8 +159,8 @@ cv2.waitKey(0)
 
 def corner_response_embedding(R, img):
     # convert gray scale to rgb channel
-    normalized_img_shapes = cv2.normalize(img_shapes, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    rgb_img = cv2.cvtColor(normalized_img_shapes, cv2.COLOR_GRAY2BGR)
+    normalized_img = cv2.normalize(img, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    rgb_img = cv2.cvtColor(normalized_img, cv2.COLOR_GRAY2BGR)
 
     # thresholding (greater than 0.1)
     for i in range(R.shape[0]):
@@ -154,18 +172,34 @@ def corner_response_embedding(R, img):
 
     return R, rgb_img
 
-R_shapes, rgb_img_shapes = corner_response_embedding(R_shapes, filtered_img_shapes)
-
-cv2.imshow("circled!", rgb_img_shapes)
+thresholded_R_shapes, rgb_img_shapes = corner_response_embedding(R_shapes, img_shapes)
+thresholded_R_lenna, rgb_img_lenna = corner_response_embedding(R_lenna, img_lenna)
+cv2.imshow("corner response > 0.1 :: shapes.png", rgb_img_shapes)
 cv2.waitKey(0)
-cv2.destroyAllWindows()
+cv2.imshow("corner response > 0.1 :: lenna.png", rgb_img_lenna)
+cv2.waitKey(0)
+#cv2.destroyAllWindows()
+
 
 ## b) show image and save
 
 ## c) nms
 
+
+print("non-maximum suppress...")
 _winSize = 11
-suppressed_R_shapes = non_maximum_suppression_win(R_shapes, _winSize)
-#suppressed_R_lenna = non_maximum_suppression_win(R_lenna, _winSize)
+suppressed_R_shapes = non_maximum_suppression_win(thresholded_R_shapes, _winSize)
+suppressed_R_lenna = non_maximum_suppression_win(thresholded_R_lenna, _winSize)
+_, rgb_img_shapes2 = corner_response_embedding(suppressed_R_shapes, img_shapes)
+_, rgb_img_lenna2 = corner_response_embedding(suppressed_R_lenna, img_lenna)
+
+
+cv2.imshow("non-maximum suppressed :: shapes.png", rgb_img_shapes2)
+cv2.waitKey(0)
+cv2.imshow("non-maximum suppressed :: lenna.png", rgb_img_lenna2)
+cv2.waitKey(0)
+
+
+cv2.destroyAllWindows()
 
 ## d) show image and save
