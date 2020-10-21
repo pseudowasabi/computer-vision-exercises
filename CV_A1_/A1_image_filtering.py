@@ -1,6 +1,7 @@
 '''
 Computer vision assignment 1 by Yoseob Kim
 A1_image_filtering.py
+Image filtering using Gaussian kernel and cross-correlation.
 GitHub Link: https://github.com/pseudowasabi/computer-vision-exercises/tree/master/CV_A1_
 '''
 

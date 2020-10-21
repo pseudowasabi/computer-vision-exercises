@@ -60,17 +60,18 @@ def cross_correlation_1d(img, kernel):
 
     # 3. apply cross correlation using iteration
     filtered_img = np.zeros((size0, size1))
-    for i in range(size0):
-        for j in range(size1):
-            if dir == 0:
-                filtered_img[i][j] = sum(np.multiply(padded_img[i][j:j+k_size], kernel))
-            elif dir == 1:
-                #pass
-                k_size_patch_from_padded_img = np.zeros(k_size)
-                for x in range(i, i+k_size):
-                    k_size_patch_from_padded_img[x-i] = padded_img[x][j]
-                #print(k_size_patch_from_padded_img)
-                filtered_img[i][j] = sum(np.multiply(k_size_patch_from_padded_img, kernel))
+    for x in range(size0):
+        for y in range(size1):
+            if dir == 0:    # horizontal kernel
+                _sum = 0
+                for j in range(k_size):
+                    _sum += (padded_img[x][y+j] * kernel[j])
+                filtered_img[x][y] = _sum
+            elif dir == 1:  # vertical kernel
+                _sum = 0
+                for i in range(k_size):
+                    _sum += (padded_img[x+i][y] * kernel[i])
+                filtered_img[x][y] = _sum
             #print('%.04f'%filtered_img[i][j], end=' ')
         #print()
     #print(filtered_img)
