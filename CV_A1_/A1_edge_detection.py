@@ -58,8 +58,8 @@ def compute_image_gradient(img):
 
             # direction - adjust range to [0, 2 * pi].
             dir[i][j] = math.atan2(sobel_img_y[i][j], sobel_img_x[i][j])
-            if dir[i][j] < 0:
-                dir[i][j] += (2 * math.pi)
+            #if dir[i][j] < 0.0:
+            #    dir[i][j] += (2 * math.pi)
 
     # normalize magnitude to range [0, 1]
     # reference to the idea of normalize (when mag_max value goes above 255).
@@ -76,9 +76,68 @@ def compute_image_gradient(img):
     return mag, dir
 
 
-def non_maximum_suppression_dir(mag, dir):
-    pass
+#dx = [0, -1, -1, -1, 0, 1, 1, 1]
+#dy = [1, 1, 0, -1, -1, -1, 0, 1]
+dx = [0, 1, 1, 1, 0, -1, -1, -1]
+dy = [-1, -1, 0, 1, 1, 1, 0, -1]
+d45 = math.pi / 4   # 45 degree
+bins = [-3*d45, -2*d45, -d45, 0.0, d45, 2*d45, 3*d45, math.pi]
 
+def non_maximum_suppression_dir(mag, dir):
+    suppressed_mag = np.zeros((mag.shape[0], mag.shape[1]))
+    j_range = range(mag.shape[1])
+
+    # thresholding first (only check for TH; high threshold)
+    # reference to select threshold value (take max threshold)
+    # https://stackoverflow.com/questions/24862374/canny-edge-detector-threshold-values-gives-different-result
+    mag_avg = np.average(mag)
+    threshold_value = 1.33 * mag_avg
+    for i in range(mag.shape[0]):
+        for j in j_range:
+            if mag[i][j] < threshold_value:
+                mag[i][j] = 0
+
+    for i in range(mag.shape[0]):
+        for j in j_range:
+            # get direction of each pixels.
+            bin_num = -1
+            #if dir[i][j] > bins[7]:
+            #    dir[i][j] -= (2 * math.pi)
+            for k in range(8):
+                if dir[i][j] <= bins[k]:
+                    bin_num = k
+                    break
+            #print(dir[i][j], ", ", bin_num)
+            if bin_num == -1:
+                print("index error occurs...")
+                continue
+
+            # check is direction or opposite direction pixels are in range.
+            dir0 = (i+dx[bin_num], j+dy[bin_num])
+            if 0 <= dir0[0] < mag.shape[0] and 0 <= dir0[1] < mag.shape[1]:
+                dir0_valid = True
+            else:
+                dir0_valid = False
+
+            dir1 = (i+dx[(bin_num+4)%8], j+dy[(bin_num+4)%8])
+            if 0 <= dir1[0] < mag.shape[0] and 0 <= dir1[1] < mag.shape[1]:
+                dir1_valid = True
+            else:
+                dir1_valid = False
+
+            # execute non-maximum suppression.
+            if dir0_valid:
+                if dir1_valid:
+                    if mag[i][j] >= mag[dir0[0]][dir0[1]] and mag[i][j] >= mag[dir1[0]][dir1[1]]:  # alive
+                        suppressed_mag[i][j] = mag[i][j]
+                else:   # dir0 is valid only
+                    if mag[i][j] >= mag[dir0[0]][dir0[1]]:
+                        suppressed_mag[i][j] = mag[i][j]
+            else:
+                if dir1_valid:
+                    if mag[i][j] >= mag[dir1[0]][dir1[1]]:
+                        suppressed_mag[i][j] = mag[i][j]
+    return suppressed_mag
 
 
 ###
@@ -103,6 +162,7 @@ filtered_img_shapes = cross_correlation_1d(filtered_img_shapes, kernel_v)
 ###
 
 ## d) print computational times, call imshow function to show magnitude maps, store image files
+
 mag_lenna, dir_lenna = compute_image_gradient(filtered_img_lenna)
 cv2.imshow("magnitude map of lenna", mag_lenna)
 cv2.waitKey(0)
@@ -110,9 +170,18 @@ cv2.waitKey(0)
 mag_shapes, dir_shapes = compute_image_gradient(filtered_img_shapes)
 cv2.imshow("magnitude map of shapes", mag_shapes)
 cv2.waitKey(0)
-cv2.destroyAllWindows()
+#cv2.destroyAllWindows()
 
 ###
 # 2-3. Non-maximum suppression
 ###
 
+suppressed_mag_lenna = non_maximum_suppression_dir(mag_lenna, dir_lenna)
+suppressed_mag_shapes = non_maximum_suppression_dir(mag_shapes, dir_shapes)
+
+cv2.imshow("magnitude map of lenna, non-maximum suppressed", suppressed_mag_lenna)
+cv2.waitKey(0)
+
+cv2.imshow("magnitude map of shapes, non-maximum suppressed", suppressed_mag_shapes)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
