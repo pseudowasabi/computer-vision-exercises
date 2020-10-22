@@ -1,6 +1,7 @@
 '''
 Computer vision assignment 1 by Yoseob Kim
 A1_corner_detection.py
+Implementation of Harris corner detector.
 GitHub Link: https://github.com/pseudowasabi/computer-vision-exercises/tree/master/CV_A1_
 '''
 
@@ -9,10 +10,16 @@ import numpy as np
 import math
 import time
 import operator
+import os
 from filtering_by_yoseob import *
 
-# ** initial settings
-
+## ** initial settings to make result directory.
+## Reference - https://www.geeksforgeeks.org/python-os-makedirs-method/?ref=lbp
+try:
+    os.makedirs('result', exist_ok=True)
+except OSError as error:
+    print("[NOTICE!] '/result' directory cannot be created.")
+    print("Please CREATE the DIRECTORY MANUALLY to save created images.")
 
 ###
 # 3-2. Corner response (define function - a, b, c and d)

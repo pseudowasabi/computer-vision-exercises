@@ -1,7 +1,7 @@
 '''
 Computer vision assignment 1 by Yoseob Kim
 A1_edge_detection.py
-Implementation of Canny edge detection.
+Implementation of Canny edge detector.
 GitHub Link: https://github.com/pseudowasabi/computer-vision-exercises/tree/master/CV_A1_
 '''
 
@@ -9,8 +9,16 @@ import cv2
 import numpy as np
 import math
 import time
+import os
 from filtering_by_yoseob import *
 
+## ** initial settings to make result directory.
+## Reference - https://www.geeksforgeeks.org/python-os-makedirs-method/?ref=lbp
+try:
+    os.makedirs('result', exist_ok=True)
+except OSError as error:
+    print("[NOTICE!] '/result' directory cannot be created.")
+    print("Please CREATE the DIRECTORY MANUALLY to save created images.")
 
 ###
 # 2-2. Image gradient (define function - a, b and c)

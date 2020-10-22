@@ -9,7 +9,16 @@ import cv2
 import numpy as np
 import math
 import time
+import os
 from filtering_by_yoseob import *
+
+## ** initial settings to make result directory.
+## Reference - https://www.geeksforgeeks.org/python-os-makedirs-method/?ref=lbp
+try:
+    os.makedirs('result', exist_ok=True)
+except OSError as error:
+    print("[NOTICE!] '/result' directory cannot be created.")
+    print("Please CREATE the DIRECTORY MANUALLY to save created images.")
 
 ###
 # 1-1. Image Filtering by Cross-Correlation
