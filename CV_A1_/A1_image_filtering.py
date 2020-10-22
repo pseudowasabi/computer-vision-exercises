@@ -69,6 +69,9 @@ for i in range(3):
                 final_filtered_lenna[x][y] = filtered_img_lenna[u][v] / 255
         print(' ---> done.')
 
+#print(final_filtered_lenna)
+#print(final_filtered_lenna.shape)
+final_filtered_lenna = cv2.normalize(final_filtered_lenna, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_1_gaussian_filtered_lenna.png', final_filtered_lenna)
 print(' * filtered image of "lenna.png" saved to ./result/ directory.')
 cv2.imshow('Gaussian filtering of "Lenna.png" by Yoseob Kim', final_filtered_lenna)
@@ -101,6 +104,9 @@ for i in range(3):
                 final_filtered_shapes[x][y] = filtered_img_shapes[u][v] / 255
         print(' ---> done.')
 
+#print(final_filtered_shapes)
+#print(final_filtered_shapes.shape)
+final_filtered_shapes = cv2.normalize(final_filtered_shapes, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_1_gaussian_filtered_shapes.png', final_filtered_shapes)
 print(' * filtered image of "shapes.png" saved to ./result/ directory.')
 

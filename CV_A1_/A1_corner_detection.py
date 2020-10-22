@@ -106,7 +106,7 @@ def non_maximum_suppression_win(R, winSize):
     x_bound = R.shape[0] - winSize + 1
     y_bound = R.shape[1] - winSize + 1
 
-    elapsed_ = list(range(0, R.shape[0], R.shape[1] // 20))
+    # elapsed_ = list(range(0, R.shape[0], R.shape[1] // 20))
     for x in range(0, x_bound, winSize // 2):
         for y in range(0, y_bound, winSize // 2):
             local_maxima = R[x][y]
@@ -121,8 +121,8 @@ def non_maximum_suppression_win(R, winSize):
                     R[i][j] = 0
             # print(x, y, local_maxima, lm_x, lm_y)
             R[lm_x][lm_y] = local_maxima
-        if x in elapsed_:
-            print('.', end='')
+        #if x in elapsed_:
+        #    print('.', end='')
     return R
 
 
@@ -162,7 +162,10 @@ R_shapes = compute_corner_response(filtered_img_shapes)
 elapsed_time = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time)
 
+#print(np.min(R_shapes), np.max(R_shapes))
+R_shapes = cv2.normalize(R_shapes, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_3_corner_raw_shapes.png', R_shapes)
+R_shapes = cv2.normalize(R_shapes, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 print(' * corner responses of "shapes.png" saved to ./result/ directory.')
 
 print(' ## notice: press any key (on image window) to continue. !!do not close window!!\n')
@@ -178,7 +181,10 @@ R_lenna = compute_corner_response(filtered_img_lenna)
 elapsed_time = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time)
 
+#print(np.min(R_lenna), np.max(R_lenna))
+R_lenna = cv2.normalize(R_lenna, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_3_corner_raw_lenna.png', R_lenna)
+R_lenna = cv2.normalize(R_lenna, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 print(' * corner responses of "lenna.png" saved to ./result/ directory.')
 
 print(' ## notice: press any key (on image window) to continue. !!do not close window!!\n')
@@ -204,7 +210,7 @@ def corner_response_embedding(R, img):
     for i in range(R.shape[0]):
         for j in range(R.shape[1]):
             if R[i][j] > 0.1:
-                cv2.circle(rgb_img, (j, i), 5, (0, 255, 0), 1)
+                cv2.circle(rgb_img, (j, i), 5, (0, 1.0, 0), 1)
             else:
                 R[i][j] = 0
 
@@ -213,23 +219,29 @@ def corner_response_embedding(R, img):
 print('a, b) thresholding and corner response embedding to original images')
 
 # for shapes.png
+#print(np.min(img_shapes), np.max(img_shapes))
 thresholded_R_shapes, rgb_img_shapes = corner_response_embedding(R_shapes, img_shapes)
+#print(np.min(rgb_img_shapes), np.max(rgb_img_shapes))
+rgb_img_shapes = cv2.normalize(rgb_img_shapes, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_3_corner_bin_shapes.png', rgb_img_shapes)
-print(' * corner response embedding of "shapes.png" saved to ./result/ directory.')
+print(' ** corner response embedding of "shapes.png" saved to ./result/ directory.')
 
 print(' ## notice: press any key (on image window) to continue. !!do not close window!!\n')
 cv2.imshow("corner response > 0.1 :: shapes.png", rgb_img_shapes)
 cv2.waitKey(0)
 
 # for lenna.png
+#print(np.min(img_lenna), np.max(img_lenna))
 thresholded_R_lenna, rgb_img_lenna = corner_response_embedding(R_lenna, img_lenna)
+#print(np.min(rgb_img_lenna), np.max(rgb_img_lenna))
+rgb_img_lenna = cv2.normalize(rgb_img_lenna, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_3_corner_bin_lenna.png', rgb_img_lenna)
-print(' * corner response embedding of "lenna.png" saved to ./result/ directory.')
+print(' ** corner response embedding of "lenna.png" saved to ./result/ directory.')
 
 print(' ## notice: press any key (on image window) to continue. !!do not close window!!\n')
 cv2.imshow("corner response > 0.1 :: lenna.png", rgb_img_lenna)
 cv2.waitKey(0)
-print()
+#print()
 
 
 ## c) nms
@@ -246,8 +258,10 @@ elapsed_time = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time)
 
 _, rgb_img_shapes2 = corner_response_embedding(suppressed_R_shapes, img_shapes)
+#print(np.min(rgb_img_shapes2), np.max(rgb_img_shapes2))
+rgb_img_shapes2 = cv2.normalize(rgb_img_shapes2, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_3_corner_sup_shapes.png', rgb_img_shapes2)
-print(' * image gradients of "lenna.png" saved to ./result/ directory.')
+print(' ** NMS applied R of "shapes.png" saved to ./result/ directory.')
 
 print(' ## notice: press any key (on image window) to continue. !!do not close window!!\n')
 cv2.imshow("non-maximum suppressed :: shapes.png", rgb_img_shapes2)
@@ -261,8 +275,10 @@ elapsed_time = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time)
 
 _, rgb_img_lenna2 = corner_response_embedding(suppressed_R_lenna, img_lenna)
-cv2.imwrite('./result/part_3_corner_sup_lenna.png', rgb_img_shapes2)
-print(' * image gradients of "lenna.png" saved to ./result/ directory.')
+#print(np.min(rgb_img_lenna2), np.max(rgb_img_lenna2))
+rgb_img_lenna2 = cv2.normalize(rgb_img_lenna2, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+cv2.imwrite('./result/part_3_corner_sup_lenna.png', rgb_img_lenna2)
+print(' ** NMS applied R of "lenna.png" saved to ./result/ directory.')
 
 print(' ## notice: P#3 done. press any key (on image window) to finish.\n')
 cv2.imshow("non-maximum suppressed :: lenna.png", rgb_img_lenna2)

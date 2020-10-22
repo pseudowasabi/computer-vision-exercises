@@ -171,6 +171,8 @@ mag_shapes, dir_shapes = compute_image_gradient(filtered_img_shapes)
 elapsed_time = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time)
 
+#print(mag_shapes)
+mag_shapes = cv2.normalize(mag_shapes, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_2_edge_raw_shapes.png', mag_shapes)
 print(' * image gradients of "shapes.png" saved to ./result/ directory.')
 
@@ -187,6 +189,8 @@ mag_lenna, dir_lenna = compute_image_gradient(filtered_img_lenna)
 elapsed_time = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time)
 
+#print(mag_lenna)
+mag_lenna = cv2.normalize(mag_lenna, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_2_edge_raw_lenna.png', mag_lenna)
 print(' * image gradients of "lenna.png" saved to ./result/ directory.')
 
@@ -210,6 +214,8 @@ suppressed_mag_shapes = non_maximum_suppression_dir(mag_shapes, dir_shapes)
 elapsed_time = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time)
 
+#print(suppressed_mag_shapes)
+suppressed_mag_shapes = cv2.normalize(suppressed_mag_shapes, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_2_edge_sup_shapes.png', suppressed_mag_shapes)
 print(' * non-maximum suppression result of shapes saved to ./result/ directory.')
 
@@ -226,6 +232,8 @@ suppressed_mag_lenna = non_maximum_suppression_dir(mag_lenna, dir_lenna)
 elapsed_time = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time)
 
+#print(suppressed_mag_lenna)
+suppressed_mag_lenna = cv2.normalize(suppressed_mag_lenna, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imwrite('./result/part_2_edge_sup_lenna.png', suppressed_mag_lenna)
 print(' * non-maximum suppression result of lenna saved to ./result/ directory.')
 
