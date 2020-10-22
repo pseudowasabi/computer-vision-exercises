@@ -80,6 +80,8 @@ def cross_correlation_1d(img, kernel):
     return filtered_img
 
 def image_padding_2d(img, padd_width, type=0):
+    # type == 0 ; padd image with the nearest pixel inside the image.
+    # type != 0 ; padd image with zeros.
     size0 = img.shape[0]
     size1 = img.shape[1]
 

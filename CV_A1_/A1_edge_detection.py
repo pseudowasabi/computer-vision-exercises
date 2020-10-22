@@ -153,6 +153,7 @@ print('filtering... (for "lenna.png")', end='')
 filtered_img_lenna = my_gaussian_filtering(img_lenna, 7, 1.5)
 print(' ---> done.')
 print()
+print()
 
 ###
 # 2-2. Image gradient (execute requirements - d and e)
@@ -192,7 +193,7 @@ print(' * image gradients of "lenna.png" saved to ./result/ directory.')
 print(' ## notice: press any key (on image window) to continue. !!do not close window!!\n')
 cv2.imshow("magnitude map of lenna", mag_lenna)
 cv2.waitKey(0)
-
+print()
 
 ###
 # 2-3. Non-maximum suppression
