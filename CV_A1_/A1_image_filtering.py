@@ -38,7 +38,7 @@ print('1-2. c) 2-d gaussian kernel (size=5, sigma=1)')
 print(kernel_2d_51, end='\n\n')
 
 ## d) Perform 9 different Gaussian filtering
-print('1-2. d) perform 9 different gaussian filtering to "lenna.png"')
+print('1-2. d) perform 9 different gaussian filtering to lenna and shapes.')
 k_size = [5, 11, 17]
 sigmas = [1, 6, 11]
 font = cv2.FONT_HERSHEY_SIMPLEX

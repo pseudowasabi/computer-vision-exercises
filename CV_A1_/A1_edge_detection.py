@@ -31,6 +31,7 @@ def compute_image_gradient(img):
     j_range = range(img.shape[1])
 
     mag_max = 0
+    elapsed_ = list(range(0, img.shape[0], img.shape[0]//10))
     for i in range(img.shape[0]):
         for j in j_range:
             # magnitude
@@ -41,6 +42,8 @@ def compute_image_gradient(img):
             dir[i][j] = math.atan2(sobel_img_y[i][j], sobel_img_x[i][j])
             #if dir[i][j] < 0.0:
             #    dir[i][j] += (2 * math.pi)
+        if i in elapsed_:
+            print('.', end='')
 
     # normalize magnitude to range [0, 1]
     # reference to the idea of normalize (when mag_max value goes above 255).
@@ -53,6 +56,8 @@ def compute_image_gradient(img):
     for i in range(img.shape[0]):
         for j in j_range:
             mag[i][j] = mag[i][j] * normalizer
+        if i in elapsed_:
+            print('.', end='')
 
     return mag, dir
 
@@ -73,10 +78,14 @@ def non_maximum_suppression_dir(mag, dir):
     # https://stackoverflow.com/questions/24862374/canny-edge-detector-threshold-values-gives-different-result
     mag_avg = np.average(mag)
     threshold_value = 1.33 * mag_avg
+
+    elapsed_ = list(range(0, mag.shape[0], mag.shape[0]//10))
     for i in range(mag.shape[0]):
         for j in j_range:
             if mag[i][j] < threshold_value:
                 mag[i][j] = 0
+        if i in elapsed_:
+            print('.', end='')
 
     for i in range(mag.shape[0]):
         for j in j_range:
@@ -118,6 +127,9 @@ def non_maximum_suppression_dir(mag, dir):
                 if dir1_valid:
                     if mag[i][j] >= mag[dir1[0]][dir1[1]]:
                         suppressed_mag[i][j] = mag[i][j]
+        if i in elapsed_:
+            print('.', end='')
+
     return suppressed_mag
 
 
@@ -128,34 +140,96 @@ def non_maximum_suppression_dir(mag, dir):
 img_lenna = cv2.imread('./lenna.png', cv2.IMREAD_GRAYSCALE)
 img_shapes = cv2.imread('./shapes.png', cv2.IMREAD_GRAYSCALE)
 
-filtered_img_lenna = my_gaussian_filtering(img_lenna, 7, 1.5)
+print('Computer Vision A#1 // Yoseob Kim')
+print('Part #2. Edge Detection\n')
+
+print('2-1. apply gaussian filtering for shapes and lenna. (size=7, sigma=1.5)')
+
+print('filtering... (for "shapes.png")', end='')
 filtered_img_shapes = my_gaussian_filtering(img_shapes, 7, 1.5)
+print(' ---> done.')
+
+print('filtering... (for "lenna.png")', end='')
+filtered_img_lenna = my_gaussian_filtering(img_lenna, 7, 1.5)
+print(' ---> done.')
+print()
 
 ###
 # 2-2. Image gradient (execute requirements - d and e)
 ###
 
 ## d) print computational times, call imshow function to show magnitude maps, store image files
+print('2-2. compute image gradients for shapes and lenna respectively.')
 
+# for "shapes.png"
+print(' ** image gradients for "shapes.png" initiate.')
+print(' [about 20 dots will be shown to be done]')
+
+start_time = time.process_time()
+mag_shapes, dir_shapes = compute_image_gradient(filtered_img_shapes)
+elapsed_time = time.process_time() - start_time
+print(' ---> done. /elapsed time:', elapsed_time)
+
+cv2.imwrite('./result/part_2_edge_raw_shapes.png', mag_shapes)
+print(' * image gradients of "shapes.png" saved to ./result/ directory.')
+
+print(' ## notice: press any key (on image window) to continue. !!do not close window!!\n')
+cv2.imshow("magnitude map of shapes", mag_shapes)
+cv2.waitKey(0)
+
+# for "lenna.png"
+print(' ** image gradients for "lenna.png" initiate.')
+print(' [about 20 dots will be shown to be done]')
+
+start_time = time.process_time()
 mag_lenna, dir_lenna = compute_image_gradient(filtered_img_lenna)
+elapsed_time = time.process_time() - start_time
+print(' ---> done. /elapsed time:', elapsed_time)
+
+cv2.imwrite('./result/part_2_edge_raw_lenna.png', mag_lenna)
+print(' * image gradients of "lenna.png" saved to ./result/ directory.')
+
+print(' ## notice: press any key (on image window) to continue. !!do not close window!!\n')
 cv2.imshow("magnitude map of lenna", mag_lenna)
 cv2.waitKey(0)
 
-mag_shapes, dir_shapes = compute_image_gradient(filtered_img_shapes)
-cv2.imshow("magnitude map of shapes", mag_shapes)
-cv2.waitKey(0)
-#cv2.destroyAllWindows()
 
 ###
 # 2-3. Non-maximum suppression
 ###
 
-suppressed_mag_lenna = non_maximum_suppression_dir(mag_lenna, dir_lenna)
-suppressed_mag_shapes = non_maximum_suppression_dir(mag_shapes, dir_shapes)
+print('2-3. apply non-maximum suppression for image gradients of each image respectively.')
 
+# for "shapes.png"
+print(' ** non-maximum suppression for image gradients of "shapes.png" initiate.')
+print(' [about 20 dots will be shown to be done]')
+
+start_time = time.process_time()
+suppressed_mag_shapes = non_maximum_suppression_dir(mag_shapes, dir_shapes)
+elapsed_time = time.process_time() - start_time
+print(' ---> done. /elapsed time:', elapsed_time)
+
+cv2.imwrite('./result/part_2_edge_sup_shapes.png', suppressed_mag_shapes)
+print(' * non-maximum suppression result of shapes saved to ./result/ directory.')
+
+print(' ## notice: press any key (on image window) to continue. !!do not close window!!\n')
+cv2.imshow("magnitude map of shapes, non-maximum suppressed", suppressed_mag_shapes)
+cv2.waitKey(0)
+
+# for "lenna.png"
+print(' ** non-maximum suppression for image gradients of "lenna.png" initiate.')
+print(' [about 20 dots will be shown to be done]')
+
+start_time = time.process_time()
+suppressed_mag_lenna = non_maximum_suppression_dir(mag_lenna, dir_lenna)
+elapsed_time = time.process_time() - start_time
+print(' ---> done. /elapsed time:', elapsed_time)
+
+cv2.imwrite('./result/part_2_edge_sup_lenna.png', suppressed_mag_lenna)
+print(' * non-maximum suppression result of lenna saved to ./result/ directory.')
+
+print(' ## notice: P#2 done. press any key (on image window) to finish.\n')
 cv2.imshow("magnitude map of lenna, non-maximum suppressed", suppressed_mag_lenna)
 cv2.waitKey(0)
 
-cv2.imshow("magnitude map of shapes, non-maximum suppressed", suppressed_mag_shapes)
-cv2.waitKey(0)
 cv2.destroyAllWindows()
