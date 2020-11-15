@@ -145,18 +145,6 @@ def getPreCalculatedHammingDistSet():
 
 precalcHD = getPreCalculatedHammingDistSet()
 
-def getHammingDist(int_list1, int_list2):
-    if len(int_list1) != len(int_list2):
-        print('size of descriptor NOT MATCHING!')
-        print('CANNOT CALCULATE hamming distance!')
-        return -1
-
-    dist_sum = 0
-    for i in range(len(int_list1)):
-        dist_sum = operator.__add__(dist_sum, precalcHD[int_list1[i]][int_list2[i]])
-
-    return dist_sum
-
 
 ## 2-1. feature matching
 # reference1 - https://076923.github.io/posts/Python-opencv-38/
@@ -166,7 +154,7 @@ def getHammingDist(int_list1, int_list2):
 cv_desk = cv2.imread('./cv_desk.png', cv2.IMREAD_GRAYSCALE)
 cv_cover = cv2.imread('./cv_cover.jpg', cv2.IMREAD_GRAYSCALE)
 
-orb = cv2.ORB_create()
+orb = cv2.ORB_create(nfeatures=1000)
 
 kp_desk = orb.detect(cv_desk, None)
 kp_desk, des_desk = orb.compute(cv_desk, kp_desk)
@@ -188,20 +176,30 @@ class my_dmatch:
 test1 = my_dmatch(desk_idx, cover_idx)
 test2 = cv2.DMatch(_distance=10, _queryIdx=desk_idx, _trainIdx=cover_idx, _imgIdx=0)
 '''
-matches = []
-
+_matches = [0 for i in range(len(kp_desk) * len(kp_cover))]
 elapsed_ = list(range(0, len(kp_desk), len(kp_desk) // 20))
 
 # below is complete code of feature matching
+m = 0
 for i in range(len(kp_desk)):
     for j in range(len(kp_cover)):
-        dist = getHammingDist(des_desk[i], des_cover[j])
-        matches.append(cv2.DMatch(_distance=float(dist), _queryIdx=i, _trainIdx=j, _imgIdx=0))
+        dist = 0
+        for k in range(len(des_desk[i])):
+            dist = operator.__add__(dist, precalcHD[des_desk[i][k]][des_cover[j][k]])
+
+        #matches[m] = cv2.DMatch(_distance=float(dist), _queryIdx=i, _trainIdx=j, _imgIdx=0)
+        _matches[m] = [float(dist), i, j]
+        # dist 기준으로 저장해두고 정렬한 다음에 상위 값만 DMatch 만드는 방식으로 하면 성능 향상 가능할듯...?
+        m += 1
     if i in elapsed_:
         print('.', end='')
 print()
 
-matches = sorted(matches, key=lambda x: x.distance)
+#matches = sorted(matches, key=lambda x: x.distance)
+_matches.sort(key=lambda x: x[0])
+matches = []
+for i in range(30):     # 상위 30개 정도만 처리
+    matches.append(cv2.DMatch(_distance=_matches[i][0], _queryIdx=_matches[i][1], _trainIdx=_matches[i][2], _imgIdx=0))
 
 match_res = None
 match_res = cv2.drawMatches(cv_desk, kp_desk, cv_cover, kp_cover, matches[:10], match_res, flags=2)
@@ -211,7 +209,7 @@ cv2.waitKey(0)
 
 ## 2-2~4. homography with... normalization vs RANSAC
 
-N_for_homography = 30
+N_for_homography = 15
 srcP = np.zeros((N_for_homography, 2))
 destP = np.zeros((N_for_homography, 2))
 
@@ -239,14 +237,25 @@ for y in range(cv_cover.shape[0]):
 
         if int(y_) in range(cv_desk.shape[0]) and int(x_) in range(cv_desk.shape[1]):
             homography_applied[int(y_)][int(x_)] = cv_cover[y][x]
-
+'''
 homography_applied = cv2.normalize(homography_applied, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imshow("after homography with normalize", homography_applied)
 cv2.waitKey(0)
-
+'''
 img_warp_0 = cv2.warpPerspective(cv_cover, H_norm, (cv_desk.shape[1], cv_desk.shape[0]))
-cv2.imshow("image ware perspective", img_warp_0)
+cv2.imshow("image warp perspective", img_warp_0)
 cv2.waitKey(0)
+
+homography_applied_overlay = cv_desk.copy()
+
+for y in range(cv_desk.shape[0]):
+    for x in range(cv_desk.shape[0]):
+        if img_warp_0[y][x] > 0:
+            homography_applied_overlay[y][x] = img_warp_0[y][x]
+
+cv2.imshow("overlay homography", homography_applied_overlay)
+cv2.waitKey(0)
+
 
 th = 0.8
 H_ransac = compute_homography_ransac(srcP, destP, th)
