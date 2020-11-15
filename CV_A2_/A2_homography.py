@@ -13,9 +13,14 @@ import operator
 import os
 
 def compute_homography(srcP, destP):
-    H = None
+    H = np.zeros((3, 3))
 
     N_for_homography = len(srcP)
+    T_S = np.identity(3)
+    T_D = np.identity(3)
+
+    _srcP = srcP.copy()
+    _destP = destP.copy()
 
     ## normalize srcP, destP
     # get average of x, y
@@ -24,70 +29,101 @@ def compute_homography(srcP, destP):
     avg_x_dest = 0.
     avg_y_dest = 0.
     for i in range(N_for_homography):
-        avg_x_src = operator.__add__(avg_x_src, srcP[i][0])
-        avg_y_src = operator.__add__(avg_y_src, srcP[i][1])
-        avg_x_dest = operator.__add__(avg_x_dest, destP[i][0])
-        avg_y_dest = operator.__add__(avg_y_dest, destP[i][1])
+        avg_x_src += _srcP[i][0]
+        avg_y_src += _srcP[i][1]
+        avg_x_dest += _destP[i][0]
+        avg_y_dest += _destP[i][1]
 
-    avg_x_src = operator.__truediv__(avg_x_src, N_for_homography)
-    avg_y_src = operator.__truediv__(avg_y_src, N_for_homography)
-    avg_x_dest = operator.__truediv__(avg_x_dest, N_for_homography)
-    avg_y_dest = operator.__truediv__(avg_y_dest, N_for_homography)
+    avg_x_src /= N_for_homography
+    avg_y_src /= N_for_homography
+    T_S[0][2] = -avg_x_src
+    T_S[1][2] = -avg_y_src
 
-    # subtract mean - need to change using matrix product
+    avg_x_dest /= N_for_homography
+    avg_y_dest /= N_for_homography
+    T_D[0][2] = -avg_x_dest
+    T_D[1][2] = -avg_y_dest
+
+    # subtract mean
     src_max = 0.
     dest_max = 0.
-    for i in range(N_for_homography):
-        srcP[i][0] = operator.__sub__(srcP[i][0], avg_x_src)
-        srcP[i][1] = operator.__sub__(srcP[i][1], avg_y_src)
-        destP[i][0] = operator.__sub__(destP[i][0], avg_x_dest)
-        destP[i][1] = operator.__sub__(destP[i][1], avg_y_dest)
 
-        current_src = operator.__add__(operator.__pow__(srcP[i][0], 2.), operator.__pow__(srcP[i][1], 2.))
+    for i in range(N_for_homography):
+        _x = T_S[0][0] * _srcP[i][0] + T_S[0][1] * _srcP[i][1] + T_S[0][2] * 1
+        _y = T_S[1][0] * _srcP[i][0] + T_S[1][1] * _srcP[i][1] + T_S[1][2] * 1
+        _srcP[i][0] = _x
+        _srcP[i][1] = _y
+
+        _x = T_D[0][0] * _destP[i][0] + T_D[0][1] * _destP[i][1] + T_D[0][2] * 1
+        _y = T_D[1][0] * _destP[i][0] + T_D[1][1] * _destP[i][1] + T_D[1][2] * 1
+        _destP[i][0] = _x
+        _destP[i][1] = _y
+
+        current_src = _srcP[i][0] ** 2 + _srcP[i][1] ** 2
         if current_src > src_max:
             src_max = current_src
-        current_dest = operator.__add__(operator.__pow__(destP[i][0], 2.), operator.__pow__(destP[i][1], 2.))
+
+        current_dest = _destP[i][0] ** 2 + _destP[i][1] ** 2
         if current_dest > dest_max:
             dest_max = current_dest
 
-    # scaling - need to change using matrix product
-    scaling_factor_src = math.sqrt(operator.__truediv__(2., src_max))
-    scaling_factor_dest = math.sqrt(operator.__truediv__(2., dest_max))
+    # scaling (longest distance to sqrt(2))
+    scaling_factor_src = math.sqrt(2 / src_max)
+    _t_s = np.identity(3)
+    _t_s[0][0] = scaling_factor_src
+    _t_s[1][1] = scaling_factor_src
 
+    scaling_factor_dest = math.sqrt(2 / dest_max)
+    _t_d = np.identity(3)
+    _t_d[0][0] = scaling_factor_dest
+    _t_d[1][1] = scaling_factor_dest
+
+    T_S = np.matmul(_t_s, T_S)
+    T_D = np.matmul(_t_d, T_D)
+
+    _srcP = srcP.copy()
+    _destP = destP.copy()
     for i in range(N_for_homography):
-        srcP[i][0] = operator.__mul__(srcP[i][0], scaling_factor_src)
-        srcP[i][1] = operator.__mul__(srcP[i][1], scaling_factor_src)
-        destP[i][0] = operator.__mul__(destP[i][0], scaling_factor_dest)
-        destP[i][1] = operator.__mul__(destP[i][1], scaling_factor_dest)
+        _x = T_S[0][0] * _srcP[i][0] + T_S[0][1] * _srcP[i][1] + T_S[0][2] * 1
+        _y = T_S[1][0] * _srcP[i][0] + T_S[1][1] * _srcP[i][1] + T_S[1][2] * 1
+        _srcP[i][0] = _x
+        _srcP[i][1] = _y
 
+        _x = T_D[0][0] * _destP[i][0] + T_D[0][1] * _destP[i][1] + T_D[0][2] * 1
+        _y = T_D[1][0] * _destP[i][0] + T_D[1][1] * _destP[i][1] + T_D[1][2] * 1
+        _destP[i][0] = _x
+        _destP[i][1] = _y
 
     ## compute homography
 
     # stacking A matrices
     A = np.zeros((2 * N_for_homography, 9))
     for i in range(N_for_homography):
-        x = srcP[i][0]
-        y = srcP[i][1]
-        x_ = destP[i][0]
-        y_ = destP[i][1]
+        x = _srcP[i][0]
+        y = _srcP[i][1]
+        x_ = _destP[i][0]
+        y_ = _destP[i][1]
 
         A[i * 2] = [-x, -y, -1, 0, 0, 0, x * x_, y * x_, x_]
         A[i * 2 + 1] = [0, 0, 0, -x, -y, -1, x * y_, y * y_, y_]
-    #print(A)
 
     # singular value decomposition of A
     # reference - https://numpy.org/doc/stable/reference/generated/numpy.linalg.svd.html
     u, s, vh = np.linalg.svd(A, full_matrices=True)
 
-    print(vh)
-    print(vh.shape)
-    # which vh to select?, how to select row/column?
+    # get singular vector of smallest singular value
+    s_i = 0
+    for i in range(9):
+        if s[i] < s[s_i]:
+            s_i = i
 
-    return vh
+    for i in range(9):
+        H[i // 3][i % 3] = vh[s_i][i]
 
+    # we have to get un-normalized H
+    H = np.matmul(np.linalg.inv(T_D), np.matmul(H, T_S))
 
-
-    #return H
+    return H
 
 def compute_homography_ransac(srcP, destP, th):
     H = None
@@ -175,23 +211,44 @@ cv2.waitKey(0)
 
 ## 2-2~4. homography with... normalization vs RANSAC
 
-N_for_homography = 15
+N_for_homography = 30
 srcP = np.zeros((N_for_homography, 2))
 destP = np.zeros((N_for_homography, 2))
 
 for i in range(N_for_homography):
-    srcP[i][0] = kp_desk[matches[i].queryIdx].pt[0]
-    srcP[i][1] = kp_desk[matches[i].queryIdx].pt[1]
-    destP[i][0] = kp_cover[matches[i].trainIdx].pt[0]
-    destP[i][1] = kp_cover[matches[i].trainIdx].pt[1]
+    srcP[i][0] = kp_cover[matches[i].trainIdx].pt[0]
+    srcP[i][1] = kp_cover[matches[i].trainIdx].pt[1]
+    destP[i][0] = kp_desk[matches[i].queryIdx].pt[0]
+    destP[i][1] = kp_desk[matches[i].queryIdx].pt[1]
 
 #print(srcP)
 #print(destP)
 
+
 H_norm = compute_homography(srcP, destP)
+print("H_norm")
+print(H_norm)
 
+homography_applied = np.zeros(cv_desk.shape)
 
-#th = 0.
-#H_ransac = compute_homography_ransac(srcP, destP, th)
+for y in range(cv_cover.shape[0]):
+    for x in range(cv_cover.shape[1]):
+        w = H_norm[2][0] * x + H_norm[2][1] * y + H_norm[2][2] * 1
+        x_ = (H_norm[0][0] * x + H_norm[0][1] * y + H_norm[0][2] * 1) / w
+        y_ = (H_norm[1][0] * x + H_norm[1][1] * y + H_norm[1][2] * 1) / w
+
+        if int(y_) in range(cv_desk.shape[0]) and int(x_) in range(cv_desk.shape[1]):
+            homography_applied[int(y_)][int(x_)] = cv_cover[y][x]
+
+homography_applied = cv2.normalize(homography_applied, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+cv2.imshow("after homography with normalize", homography_applied)
+cv2.waitKey(0)
+
+img_warp_0 = cv2.warpPerspective(cv_cover, H_norm, (cv_desk.shape[1], cv_desk.shape[0]))
+cv2.imshow("image ware perspective", img_warp_0)
+cv2.waitKey(0)
+
+th = 0.8
+H_ransac = compute_homography_ransac(srcP, destP, th)
 
 ## 2-5. stiching images
