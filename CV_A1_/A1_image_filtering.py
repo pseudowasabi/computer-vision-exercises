@@ -145,7 +145,7 @@ elapsed_time = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time)
 
 print('filtering... (1-d vertical kernel)', end='')
-stqrt_time = time.process_time()
+start_time = time.process_time()
 filtered_img_1d_lenna = cross_correlation_1d(filtered_img_1d_lenna, kernel_1d_v)
 elapsed_time_ = time.process_time() - start_time
 print(' ---> done. /elapsed time:', elapsed_time_)

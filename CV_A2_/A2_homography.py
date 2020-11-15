@@ -11,6 +11,7 @@ import math
 import time
 import operator
 import os
+import random
 
 def compute_homography(srcP, destP):
     H = np.zeros((3, 3))
@@ -110,10 +111,12 @@ def compute_homography(srcP, destP):
     # singular value decomposition of A
     # reference - https://numpy.org/doc/stable/reference/generated/numpy.linalg.svd.html
     u, s, vh = np.linalg.svd(A, full_matrices=True)
+    print("singular value")
+    print(s)
 
     # get singular vector of smallest singular value
     s_i = 0
-    for i in range(9):
+    for i in range(len(s)):
         if s[i] < s[s_i]:
             s_i = i
 
@@ -127,6 +130,33 @@ def compute_homography(srcP, destP):
 
 def compute_homography_ransac(srcP, destP, th):
     H = None
+    random.seed(1)
+
+    select_list = [i for i in range(len(srcP))]
+
+    start_time = time.process_time()
+    while True:
+        elapsed_time_ = time.process_time() - start_time
+        if elapsed_time_ > 2.9:
+            break
+
+        select = random.sample(select_list, 4)
+
+        srcP_randomly_selected = []
+        destP_randomly_selected = []
+
+        for i in select:
+            srcP_randomly_selected.append(srcP[i])
+            destP_randomly_selected.append(destP[i])
+
+        _H = compute_homography(srcP_randomly_selected, destP_randomly_selected)
+        print(_H)
+
+        # reprojection error < threshold인 경우를 어떻게 찾아야 할까?
+        # 해당 부분 강의 다시 들어보기 ...
+
+        break
+
 
     return H
 
@@ -198,7 +228,7 @@ print()
 #matches = sorted(matches, key=lambda x: x.distance)
 _matches.sort(key=lambda x: x[0])
 matches = []
-for i in range(30):     # 상위 30개 정도만 처리
+for i in range(50):     # 상위 50개 정도만 처리
     matches.append(cv2.DMatch(_distance=_matches[i][0], _queryIdx=_matches[i][1], _trainIdx=_matches[i][2], _imgIdx=0))
 
 match_res = None
@@ -224,8 +254,8 @@ for i in range(N_for_homography):
 
 
 H_norm = compute_homography(srcP, destP)
-print("H_norm")
-print(H_norm)
+#print("H_norm")
+#print(H_norm)
 
 homography_applied = np.zeros(cv_desk.shape)
 
@@ -243,7 +273,7 @@ cv2.imshow("after homography with normalize", homography_applied)
 cv2.waitKey(0)
 '''
 img_warp_0 = cv2.warpPerspective(cv_cover, H_norm, (cv_desk.shape[1], cv_desk.shape[0]))
-cv2.imshow("image warp perspective", img_warp_0)
+cv2.imshow("homography with normalization", img_warp_0)
 cv2.waitKey(0)
 
 homography_applied_overlay = cv_desk.copy()
@@ -253,11 +283,28 @@ for y in range(cv_desk.shape[0]):
         if img_warp_0[y][x] > 0:
             homography_applied_overlay[y][x] = img_warp_0[y][x]
 
-cv2.imshow("overlay homography", homography_applied_overlay)
+cv2.imshow("homography with normalization (overlay)", homography_applied_overlay)
 cv2.waitKey(0)
 
 
 th = 0.8
+
+# srcP, destP 일단 15개로 해보고 50개로 확장
 H_ransac = compute_homography_ransac(srcP, destP, th)
+'''
+img_warp_1 = cv2.warpPerspective(cv_cover, H_ransac, (cv_desk.shape[1], cv_desk.shape[0]))
+cv2.imshow("homography with RANSAC", img_warp_1)
+cv2.waitKey(0)
+
+ransac_applied_overlay = cv_desk.copy()
+
+for y in range(cv_desk.shape[0]):
+    for x in range(cv_desk.shape[0]):
+        if img_warp_1[y][x] > 0:
+            ransac_applied_overlay[y][x] = img_warp_0[y][x]
+
+cv2.imshow("homography with RANSAC (overlay)", ransac_applied_overlay)
+cv2.waitKey(0)
+'''
 
 ## 2-5. stiching images
