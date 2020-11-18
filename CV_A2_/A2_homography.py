@@ -194,6 +194,7 @@ cv_desk = cv2.imread('./cv_desk.png', cv2.IMREAD_GRAYSCALE)
 cv_cover = cv2.imread('./cv_cover.jpg', cv2.IMREAD_GRAYSCALE)
 
 orb = cv2.ORB_create(nfeatures=900)
+#orb = cv2.ORB_create()
 
 kp_desk = orb.detect(cv_desk, None)
 kp_desk, des_desk = orb.compute(cv_desk, kp_desk)
@@ -215,10 +216,10 @@ class my_dmatch:
 test1 = my_dmatch(desk_idx, cover_idx)
 test2 = cv2.DMatch(_distance=10, _queryIdx=desk_idx, _trainIdx=cover_idx, _imgIdx=0)
 '''
-_matches_desk_to_cover = [[0., 0, 0] for i in range(len(kp_desk))]
-_matches_cover_to_desk = [[0., 0, 0] for i in range(len(kp_cover))]
+_matches_desk_to_cover = [[255, 0, 0] for i in range(len(kp_desk))]
+_matches_cover_to_desk = [[255, 0, 0] for i in range(len(kp_cover))]
 elapsed_desk = list(range(0, len(kp_desk), len(kp_desk) // 20))
-elapsed_cover = list(range(0, len(kp_cover), len(kp_cover) // 20))
+#elapsed_cover = list(range(0, len(kp_cover), len(kp_cover) // 20))
 
 # below is complete code of feature matching
 
@@ -231,41 +232,26 @@ kp_cover_len = len(kp_cover)
 des_len = len(des_desk[0])
 
 start_time = time.process_time()
-m = 0
 for i in range(kp_desk_len):
-    min_j_0, min_dist_0 = 0, 256
+    _matches_desk_to_cover[i][1] = i
+    desk_i = des_desk[i]
     for j in range(kp_cover_len):
-        dist_0 = 0
-        for k in range(des_len):    # len(des_desk[]) == len(des_cover[])
-            dist_0 += precalcHD[des_desk[i][k]][des_cover[j][k]]    # desk to cover
+        dist = 0
+        _matches_cover_to_desk[j][1] = j
+        cover_j = des_cover[j]
 
-        if dist_0 < min_dist_0:
-            min_dist_0, min_j_0 = dist_0, j
+        for k in range(des_len):
+            dist = operator.__add__(dist, precalcHD[desk_i[k]][cover_j[k]])
 
-        #matches[m] = cv2.DMatch(_distance=float(dist), _queryIdx=i, _trainIdx=j, _imgIdx=0)
+        if dist < _matches_desk_to_cover[i][0]:
+            _matches_desk_to_cover[i][0] = dist
+            _matches_desk_to_cover[i][2] = j
 
-    _matches_desk_to_cover[m][0], _matches_desk_to_cover[m][1], _matches_desk_to_cover[m][2] = float(min_dist_0), i, min_j_0
-    m += 1
+        if dist < _matches_cover_to_desk[j][0]:
+            _matches_cover_to_desk[j][0] = dist
+            _matches_cover_to_desk[j][2] = i
 
     if i in elapsed_desk:
-        print('.', end='')
-
-print()
-m = 0
-for i in range(kp_cover_len):
-    min_j_1, min_dist_1 = 0, 256
-    for j in range(kp_desk_len):
-        dist_1 = 0
-        for k in range(des_len):    # len(des_desk[]) == len(des_cover[])
-            dist_1 += precalcHD[des_cover[i][k]][des_desk[j][k]]    # cover to desk
-
-        if dist_1 < min_dist_1:
-            min_dist_1, min_j_1 = dist_1, j
-
-    _matches_cover_to_desk[m][0], _matches_cover_to_desk[m][1], _matches_cover_to_desk[m][2] = float(min_dist_1), i, min_j_1
-    m += 1
-
-    if i in elapsed_cover:
         print('.', end='')
 
 print()
@@ -308,7 +294,7 @@ for x in range(kp_cover_len):
 matches = []
 for m_i in range(kp_desk_len):
     if cross_check[_matches_desk_to_cover[m_i][1]][_matches_desk_to_cover[m_i][2]] == 2.:
-        matches.append(cv2.DMatch(_distance=_matches_desk_to_cover[m_i][0], _queryIdx=_matches_desk_to_cover[m_i][1], _trainIdx=_matches_desk_to_cover[m_i][2], _imgIdx=0))
+        matches.append(cv2.DMatch(_distance=float(_matches_desk_to_cover[m_i][0]), _queryIdx=_matches_desk_to_cover[m_i][1], _trainIdx=_matches_desk_to_cover[m_i][2], _imgIdx=0))
 
 
 bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
