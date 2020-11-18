@@ -43,22 +43,12 @@ def get_transformed_image(img, M):
 
     y_range = range(400 - img.shape[0] // 2, 400 + img.shape[0] // 2 + 1)
     x_range = range(400 - img.shape[1] // 2, 400 + img.shape[1] // 2 + 1)
-    #print(y_range, x_range)
-
-    # (400, 400)으로 맞춰두고 좌표 변환을 하지 말고,
-    # 좌표 변환을 다 해놓고 (400, 400)으로 translation 할 것!
-
-    start_y_pos = 400 - img.shape[0] // 2
-    start_x_pos = 400 - img.shape[1] // 2
-
 
     # (i, 0 -> y), (j, 1 -> x)
 
     i = 0
-    #for y in range(img.shape[0]):
     for y in y_range:
         j = 0
-        #for x in range(img.shape[1]):
         for x in x_range:
             origin_y_coord[i][j] = y
             origin_x_coord[i][j] = x
@@ -73,7 +63,6 @@ def get_transformed_image(img, M):
             x_prime = M[0][0] * origin_x_coord[i][j] + M[0][1] * origin_y_coord[i][j] + M[0][2] * 1
             y_prime = M[1][0] * origin_x_coord[i][j] + M[1][1] * origin_y_coord[i][j] + M[1][2] * 1
 
-            #plane[(int(y_prime)+start_y_pos)%801][(int(x_prime)+start_x_pos)%801] = img[i][j]
             if (int(y_prime) in range(801)) and (int(x_prime) in range(801)):
                 plane[int(y_prime)][int(x_prime)] = img[i][j]
             else:
@@ -115,13 +104,6 @@ _M[ord('Y')] = np.array([[1., 0., 0.], [0., 1.05, 0.], [0., 0., 1.]])           
 translate_minus_400 = np.array([[1., 0., -400.], [0., 1., -400.], [0., 0., 1.]])
 translate_plus_400 = np.array([[1., 0., +400.], [0., 1., +400.], [0., 0., 1.]])
 
-#_M[ord('R')] = np.matmul(translate_plus_400, np.matmul(_M[ord('R')], translate_minus_400))
-#_M[ord('r')] = np.matmul(translate_plus_400, np.matmul(_M[ord('r')], translate_minus_400))
-#_M[ord('y')] = np.matmul(test2, np.matmul(_M[ord('y')], test1))
-#_M[ord('Y')] = np.matmul(test2, np.matmul(_M[ord('Y')], test1))
-#_M[ord('x')] = np.matmul(test2, np.matmul(_M[ord('x')], test1))
-#_M[ord('X')] = np.matmul(test2, np.matmul(_M[ord('X')], test1))
-
 for mat in _M:
     _M[mat] = np.matmul(translate_plus_400, np.matmul(_M[mat], translate_minus_400))
 
@@ -136,7 +118,7 @@ while not end:
     key = cv2.waitKey(0)
     print(key)
 
-    # why upper case input not working ????????????
+    # upper case input not working on Macintosh environment. (execute on Windows!)
     if key == ord('H'):
         current_M = np.identity(3)
     elif key == ord('Q'):
