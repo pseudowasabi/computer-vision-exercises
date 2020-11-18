@@ -119,17 +119,8 @@ def compute_homography(srcP, destP):
     # singular value decomposition of A
     # reference - https://numpy.org/doc/stable/reference/generated/numpy.linalg.svd.html
     u, s, vh = np.linalg.svd(A, full_matrices=True)
-    print("singular value")
-    print(s)
 
     # get singular vector of smallest singular value
-    '''
-    s_i = 0
-    for i in range(len(s)):
-        if s[i] < s[s_i]:
-            s_i = i
-    '''
-
     for i in range(9):
         H[i // 3][i % 3] = vh[len(s) - 1][i]    # last singular value is the smallest value.
 
@@ -140,7 +131,6 @@ def compute_homography(srcP, destP):
 
 def compute_homography_ransac(srcP, destP, th):
     H = None
-    random.seed(1)
 
     select_list = [i for i in range(len(srcP))]
 
@@ -156,14 +146,19 @@ def compute_homography_ransac(srcP, destP, th):
         destP_randomly_selected = []
 
         for i in select:
-            srcP_randomly_selected.append(srcP[i])
-            destP_randomly_selected.append(destP[i])
+            srcP_randomly_selected.append(list(srcP[i]))
+            destP_randomly_selected.append(list(destP[i]))
+
+        print(srcP_randomly_selected)
+        print(destP_randomly_selected)
 
         _H = compute_homography(srcP_randomly_selected, destP_randomly_selected)
         print(_H)
 
         # reprojection error < threshold인 경우를 어떻게 찾아야 할까?
         # 해당 부분 강의 다시 들어보기 ...
+
+        # hypothesis 설정...
 
         break
 
@@ -193,8 +188,8 @@ precalcHD = getPreCalculatedHammingDistSet()
 cv_desk = cv2.imread('./cv_desk.png', cv2.IMREAD_GRAYSCALE)
 cv_cover = cv2.imread('./cv_cover.jpg', cv2.IMREAD_GRAYSCALE)
 
-orb = cv2.ORB_create(nfeatures=900)
-#orb = cv2.ORB_create()
+#orb = cv2.ORB_create(nfeatures=900)
+orb = cv2.ORB_create()
 
 kp_desk = orb.detect(cv_desk, None)
 kp_desk, des_desk = orb.compute(cv_desk, kp_desk)
@@ -219,18 +214,12 @@ test2 = cv2.DMatch(_distance=10, _queryIdx=desk_idx, _trainIdx=cover_idx, _imgId
 _matches_desk_to_cover = [[255, 0, 0] for i in range(len(kp_desk))]
 _matches_cover_to_desk = [[255, 0, 0] for i in range(len(kp_cover))]
 elapsed_desk = list(range(0, len(kp_desk), len(kp_desk) // 20))
-#elapsed_cover = list(range(0, len(kp_cover), len(kp_cover) // 20))
-
-# below is complete code of feature matching
-
-# _desk->cover check
-# cover->_desk check
-# cross check, bf matcher 와 확인 (checked)
 
 kp_desk_len = len(kp_desk)
 kp_cover_len = len(kp_cover)
 des_len = len(des_desk[0])
 
+# matching process (processing time is about 21 seconds when nfeatures=900)
 start_time = time.process_time()
 for i in range(kp_desk_len):
     _matches_desk_to_cover[i][1] = i
@@ -257,32 +246,9 @@ for i in range(kp_desk_len):
 print()
 print("elapsed time:", time.process_time() - start_time)
 
-
-#matches = sorted(matches, key=lambda x: x.distance)
 _matches_desk_to_cover.sort(key=lambda x: x[0])
 _matches_cover_to_desk.sort(key=lambda x: x[0])
-
-#print(_matches_desk_to_cover)
-#print(_matches_cover_to_desk)
-
 '''
-for x in _matches_cover_to_desk:
-    print(x[0], x[1], x[2], end=' // ')
-print()
-
-for x in _matches_desk_to_cover:
-    print(x[0], x[1], x[2], end=' // ')
-print()
-
-bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
-_matches_0 = bf.match(des_desk, des_cover)
-_matches_0.sort(key=lambda x: x.distance)
-
-for x in _matches_0:
-    print(x.distance, x.queryIdx, x.trainIdx, end=' // ')
-print()
-'''
-
 max_nfeatures = max(kp_desk_len, kp_cover_len)
 cross_check = np.zeros((max_nfeatures, max_nfeatures))
 
@@ -295,14 +261,19 @@ matches = []
 for m_i in range(kp_desk_len):
     if cross_check[_matches_desk_to_cover[m_i][1]][_matches_desk_to_cover[m_i][2]] == 2.:
         matches.append(cv2.DMatch(_distance=float(_matches_desk_to_cover[m_i][0]), _queryIdx=_matches_desk_to_cover[m_i][1], _trainIdx=_matches_desk_to_cover[m_i][2], _imgIdx=0))
+'''
 
+'''
+# check if my matching process produces same result as BFMatcher.
+bf = cv2.BFMatcher(cv2.NORM_HAMMING)    # , crossCheck=True) ## --> default value of crossCheck is False.
 
-bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-_matches_0 = bf.match(des_desk, des_cover)
-_matches_0.sort(key=lambda x: x.distance)
+# after RANSAC part, use bf.match temporarily for implementing & debugging (no time consuming).
+#matches = bf.match(des_desk, des_cover)
+matches = bf.match(des_cover, des_desk)
+matches.sort(key=lambda x: x.distance)
 
-print('bf matcher', len(_matches_0))
-for x in _matches_0:
+print('bf matcher', len(matches))
+for x in matches:
     print(x.distance, x.queryIdx, x.trainIdx, end=' // ')
 print()
 
@@ -310,27 +281,55 @@ print('my match', len(matches))
 for x in matches:
     print(x.distance, x.queryIdx, x.trainIdx, end=' // ')
 print()
+'''
 
+matches_d2c = []
+for m_i in range(kp_desk_len):
+    matches_d2c.append(cv2.DMatch(_distance=float(_matches_desk_to_cover[m_i][0]), _queryIdx=_matches_desk_to_cover[m_i][1], _trainIdx=_matches_desk_to_cover[m_i][2], _imgIdx=0))
 
+'''
 match_res = None
-match_res = cv2.drawMatches(cv_desk, kp_desk, cv_cover, kp_cover, matches[:10], match_res, flags=2)
+match_res = cv2.drawMatches(cv_desk, kp_desk, cv_cover, kp_cover, matches_d2c[:10], match_res, flags=2)
 cv2.imshow("feature matching using ORB", match_res)
 cv2.waitKey(0)
-
+'''
 
 ## 2-2~4. homography with... normalization vs RANSAC
+
+matches_c2d = []
+for m_i in range(kp_cover_len):
+    matches_c2d.append(cv2.DMatch(_distance=float(_matches_cover_to_desk[m_i][0]), _queryIdx=_matches_cover_to_desk[m_i][1], _trainIdx=_matches_cover_to_desk[m_i][2], _imgIdx=0))
 
 N_for_homography = 15
 print("N for homography:", N_for_homography)
 srcP = np.zeros((N_for_homography, 2))
 destP = np.zeros((N_for_homography, 2))
 
-for i in range(N_for_homography):
-    srcP[i] = list(kp_cover[matches[i].trainIdx].pt)
-    destP[i] = list(kp_desk[matches[i].queryIdx].pt)
+#for x in matches_c2d[:28]:
+#    print(x.distance, x.queryIdx, x.trainIdx)
+
+match_res = None
+#match_res = cv2.drawMatches(cv_cover, kp_cover, cv_desk, kp_desk, matches_c2d[:N_for_homography], match_res, flags=2)
+#cv2.imshow("feature matching using ORB", match_res)
+#cv2.waitKey(0)
+
+#orig_list = [i for i in range(40)]
+#point_list = random.sample(orig_list, 15)
+# below is candidates (sampled by above 2 lines)
+# [22, 13, 11, 9, 19, 1, 33, 39, 34, 6, 32, 29, 17, 25, 5]
+# [36, 28, 2, 11, 39, 14, 6, 1, 17, 10, 4, 8, 24, 25, 22]
+# [20, 18, 8, 13, 19, 25, 9, 1, 31, 21, 11, 36, 0, 4, 14]       # select this one.
+
+point_list = [20, 18, 8, 13, 19, 25, 9, 1, 31, 21, 11, 36, 0, 4, 14]
+i = 0
+for x in point_list:
+    srcP[i] = list(kp_cover[matches_c2d[x].queryIdx].pt)
+    destP[i] = list(kp_desk[matches_c2d[x].trainIdx].pt)
+    i += 1
 
 H_norm = compute_homography(srcP, destP)
-
+'''
+# similar result as cv2.warpPerspective (multiply homography matrix to origin[book cover] coordinates.)
 homography_applied = np.zeros(cv_desk.shape)
 
 for y in range(cv_cover.shape[0]):
@@ -345,10 +344,12 @@ for y in range(cv_cover.shape[0]):
 homography_applied = cv2.normalize(homography_applied, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 cv2.imshow("after homography with normalize", homography_applied)
 cv2.waitKey(0)
+'''
+
 
 img_warp_0 = cv2.warpPerspective(cv_cover, H_norm, (cv_desk.shape[1], cv_desk.shape[0]))
-cv2.imshow("homography with normalization", img_warp_0)
-cv2.waitKey(0)
+#cv2.imshow("homography with normalization", img_warp_0)
+#cv2.waitKey(0)
 
 homography_applied_overlay = cv_desk.copy()
 
@@ -357,14 +358,21 @@ for y in range(cv_desk.shape[0]):
         if img_warp_0[y][x] > 0:
             homography_applied_overlay[y][x] = img_warp_0[y][x]
 
-cv2.imshow("homography with normalization (overlay)", homography_applied_overlay)
-cv2.waitKey(0)
+#cv2.imshow("homography with normalization (overlay)", homography_applied_overlay)
+#cv2.waitKey(0)
+#cv2.destroyAllWindows()
 
 
 th = 0.8
 
-# srcP, destP 일단 15개로 해보고 50개로 확장
-H_ransac = compute_homography_ransac(srcP, destP, th)
+srcP_ransac = []
+destP_ransac = []
+
+for x in range(kp_cover_len):
+    srcP_ransac.append(list(kp_cover[matches_c2d[x].queryIdx].pt))
+    destP_ransac.append(list(kp_desk[matches_c2d[x].trainIdx].pt))
+
+H_ransac = compute_homography_ransac(srcP_ransac, destP_ransac, th)
 '''
 img_warp_1 = cv2.warpPerspective(cv_cover, H_ransac, (cv_desk.shape[1], cv_desk.shape[0]))
 cv2.imshow("homography with RANSAC", img_warp_1)
