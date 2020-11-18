@@ -130,14 +130,18 @@ def compute_homography(srcP, destP):
     return H
 
 def compute_homography_ransac(srcP, destP, th):
-    H = None
+    H = np.zeros((3, 3))
 
+    print("here is RANSAC function")
     select_list = [i for i in range(len(srcP))]
+
+    max_inlier_cnt = 0
+    max_inlier_idx = []
 
     start_time = time.process_time()
     while True:
         elapsed_time_ = time.process_time() - start_time
-        if elapsed_time_ > 2.9:
+        if elapsed_time_ > 2.5:
             break
 
         select = random.sample(select_list, 4)
@@ -148,19 +152,54 @@ def compute_homography_ransac(srcP, destP, th):
         for i in select:
             srcP_randomly_selected.append(list(srcP[i]))
             destP_randomly_selected.append(list(destP[i]))
-
-        print(srcP_randomly_selected)
-        print(destP_randomly_selected)
+        #print(srcP_randomly_selected)
+        #print(destP_randomly_selected)
 
         _H = compute_homography(srcP_randomly_selected, destP_randomly_selected)
-        print(_H)
+        #print(_H)
 
-        # reprojection error < threshold인 경우를 어떻게 찾아야 할까?
-        # 해당 부분 강의 다시 들어보기 ...
+        # how to calculate reprojection error?
+        # references
+        # https://m.blog.naver.com/hextrial/60201356042
 
-        # hypothesis 설정...
+        # set hypothesis
+        inlier = []
+        for i in range(len(srcP)):
+            x = srcP[i][0]
+            y = srcP[i][1]
+            desired_x = destP[i][0]
+            desired_y = destP[i][1]
 
-        break
+            w = _H[2][0] * x + _H[2][1] * y + _H[2][2] * 1
+            x_prime = (_H[0][0] * x + _H[0][1] * y + _H[0][2] * 1) / w
+            y_prime = (_H[1][0] * x + _H[1][1] * y + _H[1][2] * 1) / w
+
+            reproj_err = math.sqrt(((desired_x - x_prime) ** 2) + ((desired_y - y_prime) ** 2))
+            #print(x, x_prime, desired_x, y, y_prime, desired_y, reproj_err)
+
+            if reproj_err < th:
+                inlier.append(i)
+
+        print(inlier)
+        if len(inlier) > max_inlier_cnt:
+            #H = _H
+            max_inlier_cnt = len(inlier)
+            max_inlier_idx = inlier.copy()
+
+        #break
+
+    print("elapsed time:", time.process_time() - start_time)
+
+    new_srcP = []
+    new_destP = []
+
+    for idx in max_inlier_idx:
+        new_srcP.append(list(srcP[idx]))
+        new_destP.append(list(destP[idx]))
+
+    print(len(new_srcP))
+    print(len(new_destP))
+    H = compute_homography(new_srcP, new_destP)
 
     return H
 
@@ -362,8 +401,7 @@ for y in range(cv_desk.shape[0]):
 #cv2.waitKey(0)
 #cv2.destroyAllWindows()
 
-
-th = 0.8
+th = 35    # how to select threshold value?
 
 srcP_ransac = []
 destP_ransac = []
@@ -373,7 +411,8 @@ for x in range(kp_cover_len):
     destP_ransac.append(list(kp_desk[matches_c2d[x].trainIdx].pt))
 
 H_ransac = compute_homography_ransac(srcP_ransac, destP_ransac, th)
-'''
+#H_ransac = compute_homography_ransac(srcP, destP, th)
+
 img_warp_1 = cv2.warpPerspective(cv_cover, H_ransac, (cv_desk.shape[1], cv_desk.shape[0]))
 cv2.imshow("homography with RANSAC", img_warp_1)
 cv2.waitKey(0)
@@ -387,6 +426,6 @@ for y in range(cv_desk.shape[0]):
 
 cv2.imshow("homography with RANSAC (overlay)", ransac_applied_overlay)
 cv2.waitKey(0)
-'''
+cv2.destroyAllWindows()
 
 ## 2-5. stiching images
