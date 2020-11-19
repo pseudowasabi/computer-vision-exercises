@@ -2,7 +2,9 @@
 Computer vision assignment 2 by Yoseob Kim
 A2_homography.py
 Implementation of feature matching, homography, RANSAC, image warping.
-GitHub Link: https://github.com/pseudowasabi/computer-vision-exercises/tree/master/CV_A2_
+* Status:   Implement 2-1(feature matching by ORB and hamming dist), 2-2(homography with normalization).
+            Not implement 2-3, 2-4, 2-5. (RANSAC function not working properly).
+* GitHub Link: https://github.com/pseudowasabi/computer-vision-exercises/tree/master/CV_A2_
 '''
 
 import cv2
@@ -10,7 +12,6 @@ import numpy as np
 import math
 import time
 import operator
-import os
 import random
 
 def compute_homography(srcP, destP):
@@ -260,6 +261,12 @@ class my_dmatch:
 test1 = my_dmatch(desk_idx, cover_idx)
 test2 = cv2.DMatch(_distance=10, _queryIdx=desk_idx, _trainIdx=cover_idx, _imgIdx=0)
 '''
+
+print('feature matching')
+print('20 dots will be shown to be done, and processing time is about 8 seconds.')
+# matching process (processing time is about 21 seconds when nfeatures=900)
+start_time = time.process_time()
+
 _matches_desk_to_cover = [[255, 0, 0] for i in range(len(kp_desk))]
 _matches_cover_to_desk = [[255, 0, 0] for i in range(len(kp_cover))]
 elapsed_desk = list(range(0, len(kp_desk), len(kp_desk) // 20))
@@ -268,8 +275,6 @@ kp_desk_len = len(kp_desk)
 kp_cover_len = len(kp_cover)
 des_len = len(des_desk[0])
 
-# matching process (processing time is about 21 seconds when nfeatures=900)
-start_time = time.process_time()
 for i in range(kp_desk_len):
     _matches_desk_to_cover[i][1] = i
     desk_i = des_desk[i]
@@ -292,8 +297,6 @@ for i in range(kp_desk_len):
     if i in elapsed_desk:
         print('.', end='')
 
-print()
-print("elapsed time:", time.process_time() - start_time)
 
 _matches_desk_to_cover.sort(key=lambda x: x[0])
 _matches_cover_to_desk.sort(key=lambda x: x[0])
@@ -312,7 +315,10 @@ for m_i in range(kp_cover_len):
         matches_cross.append(cv2.DMatch(_distance=float(_matches_cover_to_desk[m_i][0]), _queryIdx=_matches_cover_to_desk[m_i][1], _trainIdx=_matches_cover_to_desk[m_i][2], _imgIdx=0))
 
 
+print()
+print("elapsed time:", time.process_time() - start_time)
 
+'''
 # check if my matching process produces same result as BFMatcher.
 bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True) ## --> default value of crossCheck is False.
 
@@ -330,7 +336,7 @@ print('my match', len(matches_cross))
 for x in matches_cross:
     print(x.distance, x.queryIdx, x.trainIdx, end=' // ')
 print()
-
+'''
 
 matches_d2c = []
 for m_i in range(kp_desk_len):
@@ -340,8 +346,8 @@ for m_i in range(kp_desk_len):
 match_res = None
 match_res = cv2.drawMatches(cv_desk, kp_desk, cv_cover, kp_cover, matches_d2c[:10], match_res, flags=2)     # desk to cover
 #match_res = cv2.drawMatches(cv_desk, kp_desk, cv_cover, kp_cover, matches_cross[:10], match_res, flags=2)
-#cv2.imshow("feature matching using ORB", match_res)
-#cv2.waitKey(0)
+cv2.imshow("feature matching using ORB", match_res)
+cv2.waitKey(0)
 
 
 ## 2-2~4. homography with... normalization vs RANSAC
@@ -390,7 +396,8 @@ for x in point_list:
     i += 1
 
 H_norm = compute_homography(srcP, destP)
-
+'''
+# check the reprojection error from above homography
 for i in range(len(srcP)):
     w = H_norm[2][0] * srcP[i][0] + H_norm[2][1] * srcP[i][1] + H_norm[2][2] * 1
     x_ = (H_norm[0][0] * srcP[i][0] + H_norm[0][1] * srcP[i][1] + H_norm[0][2] * 1) / w
@@ -398,10 +405,12 @@ for i in range(len(srcP)):
 
     #print(x_, y_, destP[0][0], destP[0][1])
     print(point_list[i], math.sqrt((destP[i][0] - x_) ** 2 + (destP[i][1] - y_) ** 2))
+'''
 
+'''
 # similar result as cv2.warpPerspective (multiply homography matrix to origin[book cover] coordinates.)
 homography_applied = np.zeros(cv_desk.shape)
-'''
+
 for y in range(cv_cover.shape[0]):
     for x in range(cv_cover.shape[1]):
         w = H_norm[2][0] * x + H_norm[2][1] * y + H_norm[2][2] * 1
@@ -418,8 +427,8 @@ cv2.waitKey(0)
 
 
 img_warp_0 = cv2.warpPerspective(cv_cover, H_norm, (cv_desk.shape[1], cv_desk.shape[0]))
-#cv2.imshow("homography with normalization", img_warp_0)
-#cv2.waitKey(0)
+cv2.imshow("homography with normalization", img_warp_0)
+cv2.waitKey(0)
 
 homography_applied_overlay = cv_desk.copy()
 
@@ -428,11 +437,13 @@ for y in range(cv_desk.shape[0]):
         if img_warp_0[y][x] > 0:
             homography_applied_overlay[y][x] = img_warp_0[y][x]
 
-#cv2.imshow("homography with normalization (overlay)", homography_applied_overlay)
-#cv2.waitKey(0)
+cv2.imshow("homography with normalization (overlay)", homography_applied_overlay)
+cv2.waitKey(0)
 #cv2.destroyAllWindows()
 
 
+print()
+print('RANSAC not working properly...')
 # how to select threshold value?
 th = 12.3
 srcP_ransac = []

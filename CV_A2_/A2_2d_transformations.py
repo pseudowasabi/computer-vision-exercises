@@ -2,15 +2,13 @@
 Computer vision assignment 2 by Yoseob Kim
 A2_2d_transformation.py
 Implementation of various 2-d transformation.
-GitHub Link: https://github.com/pseudowasabi/computer-vision-exercises/tree/master/CV_A2_
+* Status:   Implement all basic specifications, not include 'reduce artifacts (extra credit)'.
+* GitHub Link: https://github.com/pseudowasabi/computer-vision-exercises/tree/master/CV_A2_
 '''
 
 import cv2
 import numpy as np
 import math
-import time
-import operator
-import os
 
 def get_transformed_image(img, M):
     # initialize plane
@@ -50,8 +48,9 @@ def get_transformed_image(img, M):
     for y in y_range:
         j = 0
         for x in x_range:
-            origin_y_coord[i][j] = y
-            origin_x_coord[i][j] = x
+            if (i in range(img.shape[0])) and (j in range(img.shape[1])):
+                origin_y_coord[i][j] = y
+                origin_x_coord[i][j] = x
             j += 1
         i += 1
 
