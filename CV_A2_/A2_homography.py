@@ -174,11 +174,12 @@ def compute_homography_ransac(srcP, destP, th):
             x_prime = (_H[0][0] * x + _H[0][1] * y + _H[0][2] * 1) / w
             y_prime = (_H[1][0] * x + _H[1][1] * y + _H[1][2] * 1) / w
 
-            reproj_err = math.sqrt(((desired_x - x_prime) ** 2) + ((desired_y - y_prime) ** 2))
+            reproj_err = (desired_x - x_prime) ** 2 + (desired_y - y_prime) ** 2
             #print(x, x_prime, desired_x, y, y_prime, desired_y, reproj_err)
 
             if reproj_err < th:
-                inlier.append(i)
+                if i not in select:
+                    inlier.append(i)
 
         print(inlier)
         if len(inlier) > max_inlier_cnt:
@@ -287,51 +288,52 @@ print("elapsed time:", time.process_time() - start_time)
 
 _matches_desk_to_cover.sort(key=lambda x: x[0])
 _matches_cover_to_desk.sort(key=lambda x: x[0])
-'''
+
 max_nfeatures = max(kp_desk_len, kp_cover_len)
 cross_check = np.zeros((max_nfeatures, max_nfeatures))
 
-for x in range(kp_desk_len):
-    cross_check[_matches_desk_to_cover[x][1]][_matches_desk_to_cover[x][2]] += 1.
 for x in range(kp_cover_len):
-    cross_check[_matches_cover_to_desk[x][2]][_matches_cover_to_desk[x][1]] += 1.
+    cross_check[_matches_cover_to_desk[x][1]][_matches_cover_to_desk[x][2]] += 1.
+for x in range(kp_desk_len):
+    cross_check[_matches_desk_to_cover[x][2]][_matches_desk_to_cover[x][1]] += 1.
 
-matches = []
-for m_i in range(kp_desk_len):
-    if cross_check[_matches_desk_to_cover[m_i][1]][_matches_desk_to_cover[m_i][2]] == 2.:
-        matches.append(cv2.DMatch(_distance=float(_matches_desk_to_cover[m_i][0]), _queryIdx=_matches_desk_to_cover[m_i][1], _trainIdx=_matches_desk_to_cover[m_i][2], _imgIdx=0))
-'''
+matches_cross = []
+for m_i in range(kp_cover_len):
+    if cross_check[_matches_cover_to_desk[m_i][1]][_matches_cover_to_desk[m_i][2]] == 2.:
+        matches_cross.append(cv2.DMatch(_distance=float(_matches_cover_to_desk[m_i][0]), _queryIdx=_matches_cover_to_desk[m_i][1], _trainIdx=_matches_cover_to_desk[m_i][2], _imgIdx=0))
 
-'''
+
+
 # check if my matching process produces same result as BFMatcher.
-bf = cv2.BFMatcher(cv2.NORM_HAMMING)    # , crossCheck=True) ## --> default value of crossCheck is False.
+bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True) ## --> default value of crossCheck is False.
 
 # after RANSAC part, use bf.match temporarily for implementing & debugging (no time consuming).
 #matches = bf.match(des_desk, des_cover)
-matches = bf.match(des_cover, des_desk)
-matches.sort(key=lambda x: x.distance)
+matches_0 = bf.match(des_cover, des_desk)
+matches_0.sort(key=lambda x: x.distance)
 
-print('bf matcher', len(matches))
-for x in matches:
+print('bf matcher', len(matches_0))
+for x in matches_0:
     print(x.distance, x.queryIdx, x.trainIdx, end=' // ')
 print()
 
-print('my match', len(matches))
-for x in matches:
+print('my match', len(matches_cross))
+for x in matches_cross:
     print(x.distance, x.queryIdx, x.trainIdx, end=' // ')
 print()
-'''
+
 
 matches_d2c = []
 for m_i in range(kp_desk_len):
     matches_d2c.append(cv2.DMatch(_distance=float(_matches_desk_to_cover[m_i][0]), _queryIdx=_matches_desk_to_cover[m_i][1], _trainIdx=_matches_desk_to_cover[m_i][2], _imgIdx=0))
 
-'''
+
 match_res = None
-match_res = cv2.drawMatches(cv_desk, kp_desk, cv_cover, kp_cover, matches_d2c[:10], match_res, flags=2)
-cv2.imshow("feature matching using ORB", match_res)
-cv2.waitKey(0)
-'''
+match_res = cv2.drawMatches(cv_desk, kp_desk, cv_cover, kp_cover, matches_d2c[:10], match_res, flags=2)     # desk to cover
+#match_res = cv2.drawMatches(cv_desk, kp_desk, cv_cover, kp_cover, matches_cross[:10], match_res, flags=2)
+#cv2.imshow("feature matching using ORB", match_res)
+#cv2.waitKey(0)
+
 
 ## 2-2~4. homography with... normalization vs RANSAC
 
@@ -352,18 +354,30 @@ match_res = None
 #cv2.imshow("feature matching using ORB", match_res)
 #cv2.waitKey(0)
 
-#orig_list = [i for i in range(40)]
+#orig_list = [i for i in range(30)]
 #point_list = random.sample(orig_list, 15)
-# below is candidates (sampled by above 2 lines)
+#print(point_list)
+# below is cover-to-desk candidates (sampled by above 2 lines)
 # [22, 13, 11, 9, 19, 1, 33, 39, 34, 6, 32, 29, 17, 25, 5]
 # [36, 28, 2, 11, 39, 14, 6, 1, 17, 10, 4, 8, 24, 25, 22]
 # [20, 18, 8, 13, 19, 25, 9, 1, 31, 21, 11, 36, 0, 4, 14]       # select this one.
 
-point_list = [20, 18, 8, 13, 19, 25, 9, 1, 31, 21, 11, 36, 0, 4, 14]
+# cross-check candidates
+# [15, 12, 29, 25, 10, 28, 1, 7, 11, 23, 26, 16, 3, 21, 0]
+# [0, 7, 22, 1, 12, 28, 4, 6, 23, 18, 17, 2, 15, 19, 16]
+# [26, 27, 6, 16, 12, 23, 28, 21, 2, 0, 3, 11, 7, 14, 29]
+# [17, 25, 0, 29, 20, 11, 28, 18, 2, 21, 8, 4, 7, 9, 13]        # select this one.
+
+
+#point_list = [20, 18, 8, 13, 19, 25, 9, 1, 31, 21, 11, 36, 0, 4, 14]
+point_list = [17, 25, 0, 29, 20, 11, 28, 18, 2, 21, 8, 4, 7, 9, 13]
+
 i = 0
 for x in point_list:
-    srcP[i] = list(kp_cover[matches_c2d[x].queryIdx].pt)
-    destP[i] = list(kp_desk[matches_c2d[x].trainIdx].pt)
+    #srcP[i] = list(kp_cover[matches_c2d[x].queryIdx].pt)
+    #destP[i] = list(kp_desk[matches_c2d[x].trainIdx].pt)
+    srcP[i] = list(kp_cover[matches_cross[x].queryIdx].pt)
+    destP[i] = list(kp_desk[matches_cross[x].trainIdx].pt)
     i += 1
 
 H_norm = compute_homography(srcP, destP)
@@ -401,17 +415,17 @@ for y in range(cv_desk.shape[0]):
 #cv2.waitKey(0)
 #cv2.destroyAllWindows()
 
-th = 35    # how to select threshold value?
+th = 3000    # how to select threshold value?
 
 srcP_ransac = []
 destP_ransac = []
 
-for x in range(kp_cover_len):
+sampled_len = len(matches_cross) // 5     # use above 20% of cross-matching relations.
+for x in range(sampled_len):
     srcP_ransac.append(list(kp_cover[matches_c2d[x].queryIdx].pt))
     destP_ransac.append(list(kp_desk[matches_c2d[x].trainIdx].pt))
 
 H_ransac = compute_homography_ransac(srcP_ransac, destP_ransac, th)
-#H_ransac = compute_homography_ransac(srcP, destP, th)
 
 img_warp_1 = cv2.warpPerspective(cv_cover, H_ransac, (cv_desk.shape[1], cv_desk.shape[0]))
 cv2.imshow("homography with RANSAC", img_warp_1)
@@ -422,7 +436,7 @@ ransac_applied_overlay = cv_desk.copy()
 for y in range(cv_desk.shape[0]):
     for x in range(cv_desk.shape[0]):
         if img_warp_1[y][x] > 0:
-            ransac_applied_overlay[y][x] = img_warp_0[y][x]
+            ransac_applied_overlay[y][x] = img_warp_1[y][x]
 
 cv2.imshow("homography with RANSAC (overlay)", ransac_applied_overlay)
 cv2.waitKey(0)
