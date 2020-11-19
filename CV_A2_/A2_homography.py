@@ -73,14 +73,20 @@ def compute_homography(srcP, destP):
         #    dest_max_idx = i
 
     # scaling (longest distance to sqrt(2))
-    scaling_factor_src = math.sqrt(2 / src_max)
+    if src_max > 0.:
+        scaling_factor_src = math.sqrt(2 / src_max)
+    else:
+        scaling_factor_src = 1.
     _t_s = np.identity(3)
     _t_s[0][0] = scaling_factor_src
     _t_s[1][1] = scaling_factor_src
     #t_s[0][0] = 1. / _srcP[src_max_idx][0]
     #t_s[1][1] = 1. / _srcP[src_max_idx][1]
 
-    scaling_factor_dest = math.sqrt(2 / dest_max)
+    if dest_max > 0.:
+        scaling_factor_dest = math.sqrt(2 / dest_max)
+    else:
+        scaling_factor_dest = 1.
     _t_d = np.identity(3)
     _t_d[0][0] = scaling_factor_dest
     _t_d[1][1] = scaling_factor_dest
@@ -130,18 +136,20 @@ def compute_homography(srcP, destP):
     return H
 
 def compute_homography_ransac(srcP, destP, th):
-    H = np.zeros((3, 3))
+    # H = np.zeros((3, 3))
 
     print("here is RANSAC function")
     select_list = [i for i in range(len(srcP))]
 
     max_inlier_cnt = 0
     max_inlier_idx = []
+    max_H = np.zeros((3, 3))
+    #inlier_check = np.zeros((len(srcP)))
 
     start_time = time.process_time()
     while True:
         elapsed_time_ = time.process_time() - start_time
-        if elapsed_time_ > 2.5:
+        if elapsed_time_ >= 3.:  # get RANSAC within 3 seconds.
             break
 
         select = random.sample(select_list, 4)
@@ -149,43 +157,42 @@ def compute_homography_ransac(srcP, destP, th):
         srcP_randomly_selected = []
         destP_randomly_selected = []
 
-        for i in select:
-            srcP_randomly_selected.append(list(srcP[i]))
-            destP_randomly_selected.append(list(destP[i]))
-        #print(srcP_randomly_selected)
-        #print(destP_randomly_selected)
+        for s in select:
+            srcP_randomly_selected.append(list(srcP[s]))
+            destP_randomly_selected.append(list(destP[s]))
 
         _H = compute_homography(srcP_randomly_selected, destP_randomly_selected)
         #print(_H)
 
         # how to calculate reprojection error?
+        # use Euclidean distance...
         # references
         # https://m.blog.naver.com/hextrial/60201356042
 
         # set hypothesis
         inlier = []
-        for i in range(len(srcP)):
-            x = srcP[i][0]
-            y = srcP[i][1]
-            desired_x = destP[i][0]
-            desired_y = destP[i][1]
+        for p in range(len(srcP)):
+            w = _H[2][0] * srcP[p][0] + _H[2][1] * srcP[p][1] + _H[2][2] * 1
+            x_prime = (_H[0][0] * srcP[p][0] + _H[0][1] * srcP[p][1] + _H[0][2] * 1) / w
+            y_prime = (_H[1][0] * srcP[p][0] + _H[1][1] * srcP[p][1] + _H[1][2] * 1) / w
 
-            w = _H[2][0] * x + _H[2][1] * y + _H[2][2] * 1
-            x_prime = (_H[0][0] * x + _H[0][1] * y + _H[0][2] * 1) / w
-            y_prime = (_H[1][0] * x + _H[1][1] * y + _H[1][2] * 1) / w
-
-            reproj_err = (desired_x - x_prime) ** 2 + (desired_y - y_prime) ** 2
-            #print(x, x_prime, desired_x, y, y_prime, desired_y, reproj_err)
+            reproj_err = math.sqrt((destP[p][0] - x_prime) ** 2 + (destP[p][1] - y_prime) ** 2)
 
             if reproj_err < th:
-                if i not in select:
-                    inlier.append(i)
+                #if p not in select:
+                inlier.append(p)
 
-        print(inlier)
+        '''
+        if len(inlier) != 0:
+            print(select, end=' ')
+            print(len(inlier))
+        '''
+
         if len(inlier) > max_inlier_cnt:
             #H = _H
             max_inlier_cnt = len(inlier)
             max_inlier_idx = inlier.copy()
+            max_H = _H.copy()
 
         #break
 
@@ -194,13 +201,15 @@ def compute_homography_ransac(srcP, destP, th):
     new_srcP = []
     new_destP = []
 
+    print(max_inlier_idx)
     for idx in max_inlier_idx:
         new_srcP.append(list(srcP[idx]))
         new_destP.append(list(destP[idx]))
 
-    print(len(new_srcP))
-    print(len(new_destP))
-    H = compute_homography(new_srcP, new_destP)
+    if len(max_inlier_idx) > 0:
+        H = compute_homography(new_srcP, new_destP)
+    else:
+        H = max_H
 
     return H
 
@@ -381,10 +390,18 @@ for x in point_list:
     i += 1
 
 H_norm = compute_homography(srcP, destP)
-'''
+
+for i in range(len(srcP)):
+    w = H_norm[2][0] * srcP[i][0] + H_norm[2][1] * srcP[i][1] + H_norm[2][2] * 1
+    x_ = (H_norm[0][0] * srcP[i][0] + H_norm[0][1] * srcP[i][1] + H_norm[0][2] * 1) / w
+    y_ = (H_norm[1][0] * srcP[i][0] + H_norm[1][1] * srcP[i][1] + H_norm[1][2] * 1) / w
+
+    #print(x_, y_, destP[0][0], destP[0][1])
+    print(point_list[i], math.sqrt((destP[i][0] - x_) ** 2 + (destP[i][1] - y_) ** 2))
+
 # similar result as cv2.warpPerspective (multiply homography matrix to origin[book cover] coordinates.)
 homography_applied = np.zeros(cv_desk.shape)
-
+'''
 for y in range(cv_cover.shape[0]):
     for x in range(cv_cover.shape[1]):
         w = H_norm[2][0] * x + H_norm[2][1] * y + H_norm[2][2] * 1
@@ -415,15 +432,17 @@ for y in range(cv_desk.shape[0]):
 #cv2.waitKey(0)
 #cv2.destroyAllWindows()
 
-th = 3000    # how to select threshold value?
 
+# how to select threshold value?
+th = 12.3
 srcP_ransac = []
 destP_ransac = []
 
-sampled_len = len(matches_cross) // 5     # use above 20% of cross-matching relations.
+#sampled_len = len(matches_cross) // 5     # use above 20% of cross-matching relations.
+sampled_len = 30
 for x in range(sampled_len):
-    srcP_ransac.append(list(kp_cover[matches_c2d[x].queryIdx].pt))
-    destP_ransac.append(list(kp_desk[matches_c2d[x].trainIdx].pt))
+    srcP_ransac.append(list(kp_cover[matches_cross[x].queryIdx].pt))
+    destP_ransac.append(list(kp_desk[matches_cross[x].trainIdx].pt))
 
 H_ransac = compute_homography_ransac(srcP_ransac, destP_ransac, th)
 
