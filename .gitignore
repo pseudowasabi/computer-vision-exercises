@@ -5,4 +5,9 @@ CV_A1_/__pycache__/
 CV_A2_/__pycache__/
 CV_A2_/*.png
 CV_A2_/*.jpg
-/*.zip
+*/*.zip
+CV_A3_/*.jpg
+CV_A3_/*.png
+CV_A3_/*.txt
+CV_A3_/compute_avg_reproj_error.py
+CV_A3_/__pycache__/
