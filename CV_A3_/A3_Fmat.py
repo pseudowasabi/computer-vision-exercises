@@ -171,6 +171,7 @@ img1_size = img_temple1.shape
 img2_size = img_temple2.shape
 print('\tNorm =', care.compute_avg_reproj_error(M_temple, compute_F_norm(M_temple)))
 print('\tMine =', care.compute_avg_reproj_error(M_temple, compute_F_mine(M_temple)))
+print()
 
 print('Average Reprojection Errors (house1.png and house2.png)')
 print('\tRaw =', care.compute_avg_reproj_error(M_house, compute_F_raw(M_house)))
@@ -178,6 +179,7 @@ img1_size = img_house1.shape
 img2_size = img_house2.shape
 print('\tNorm =', care.compute_avg_reproj_error(M_house, compute_F_norm(M_house)))
 print('\tMine =', care.compute_avg_reproj_error(M_house, compute_F_mine(M_house)))
+print()
 
 print('Average Reprojection Errors (library1.png and library2.png)')
 print('\tRaw =', care.compute_avg_reproj_error(M_library, compute_F_raw(M_library)))
@@ -208,11 +210,43 @@ def visualize_epipolar_lines(img1, img2, M, title):
     select_list = [i for i in range(M.shape[0])]
     F_mine = compute_F_mine(M)
 
+    print(title)
+
     end = False
     while not end:
-
         select = random.sample(select_list, 3)
 
+        _img1 = np.copy(img1)
+        _img2 = np.copy(img2)
+
+        for _i in range(3):
+            x, y, x_, y_ = M[select[_i]][0], M[select[_i]][1], M[select[_i]][2], M[select[_i]][3]
+
+            color_info = (255 if _i == 0 else 0, 255 if _i == 1 else 0, 255 if _i == 2 else 0)
+            cv2.circle(_img1, (int(x), int(y)), 6, color_info, 2)
+            cv2.circle(_img2, (int(x_), int(y_)), 6, color_info, 2)
+
+            # drawing epipolar line using fundamental matrix / reference - slide P61
+
+            homogeneous_X  = np.array([x,  y,  1])
+            homogeneous_X_ = np.array([x_, y_, 1])
+
+            line_img1 = F_mine.dot(np.transpose(homogeneous_X))
+            line_img2 = np.transpose(F_mine).dot(np.transpose(homogeneous_X_))
+
+            # line_img1[0] * x + line_img1[1] * y + line_img1[2] = 0
+            cv2.line(_img1, (0, int(-line_img1[2] / line_img1[1])), (_img1.shape[1] - 1, int(-(line_img1[0] * (_img1.shape[1] - 1) + line_img1[2]) / line_img1[1])), color_info, 1)
+            cv2.line(_img2, (0, int(-line_img2[2] / line_img2[1])), (_img2.shape[1] - 1, int(-(line_img2[0] * (_img2.shape[1] - 1) + line_img2[2]) / line_img2[1])), color_info, 1)
+
+            print('Red   - ' if _i == 0 else 'Green - ' if _i == 1 else 'Blue  - ', end='')
+            print('[L] point: (%.1f, %.1f), line: %.6f * x + %.6f * y + %.2f'%(x, y, line_img1[0], line_img1[1], line_img1[2]), end='\t')
+            print('[R] point: (%.1f, %.1f), line: %.6f * x + %.6f * y + %.2f'%(x_, y_, line_img2[0], line_img2[1], line_img2[2]))
+
+        print()
+
+        # reference - https://copycoding.tistory.com/159
+        img_with_epipolar_line = cv2.hconcat([_img1, _img2])
+        cv2.imshow(title, img_with_epipolar_line)
 
         key = cv2.waitKey(0)
         if key in [ord('q'), ord('Q')]:
