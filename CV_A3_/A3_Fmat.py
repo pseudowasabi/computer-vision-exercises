@@ -2,6 +2,8 @@
 Computer vision assignment 3 by Yoseob Kim
 A3_Fmat.py
 Implementation of fundamental matrix, epipolar lines.
+* Status:       Epipolar line visualization remains.
+* GitHub Link:  https://github.com/pseudowasabi/computer-vision-exercises/tree/master/CV_A3_
 '''
 
 import cv2
@@ -189,3 +191,37 @@ print()
 ## 1-2. Visualization of epipolar lines
 print('# 1-2. Visualization of epipolar lines')
 print()
+
+img_temple1_clr = cv2.imread('temple1.png', cv2.IMREAD_COLOR)
+img_temple2_clr = cv2.imread('temple2.png', cv2.IMREAD_COLOR)
+img_house1_clr = cv2.imread('house1.jpg', cv2.IMREAD_COLOR)
+img_house2_clr = cv2.imread('house2.jpg', cv2.IMREAD_COLOR)
+img_library1_clr = cv2.imread('library1.jpg', cv2.IMREAD_COLOR)
+img_library2_clr = cv2.imread('library2.jpg', cv2.IMREAD_COLOR)
+
+def visualize_epipolar_lines(img1, img2, M, title):
+    global img1_size, img2_size
+
+    img1_size = img1.shape
+    img2_size = img2.shape
+
+    select_list = [i for i in range(M.shape[0])]
+    F_mine = compute_F_mine(M)
+
+    end = False
+    while not end:
+
+        select = random.sample(select_list, 3)
+
+
+        key = cv2.waitKey(0)
+        if key in [ord('q'), ord('Q')]:
+            end = True
+
+
+
+visualize_epipolar_lines(img_temple1_clr, img_temple2_clr, M_temple, 'Epipolar lines of Temple')
+visualize_epipolar_lines(img_house1_clr, img_house2_clr, M_house, 'Epipolar lines of House')
+visualize_epipolar_lines(img_library1_clr, img_library2_clr, M_library, 'Epipolar lines of Library')
+
+cv2.destroyAllWindows()
