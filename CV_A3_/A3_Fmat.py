@@ -74,8 +74,34 @@ def compute_F_norm(M):
     M = np.copy(_M)
     return F_norm
 
+num_of_points = 8    # bigger number than 8
 def compute_F_mine(M):
-    pass
+    # basic idea from RANSAC
+
+    F_mine = compute_F_norm(M)
+    care_min_val = care.compute_avg_reproj_error(M, F_mine)
+
+    select_list = [i for i in range(M.shape[0])]
+    start_time = time.process_time()
+    while True:
+        elapsed_time_ = time.process_time() - start_time
+        if elapsed_time_ >= 3.:  # get RANSAC within 3 seconds.
+            break
+
+        select = random.sample(select_list, num_of_points)
+
+        M_randomly_selected = M[select]
+        _F_mine = compute_F_norm(M_randomly_selected)
+
+        #care_val = care.compute_avg_reproj_error(M_randomly_selected, _F_mine)
+        care_val = care.compute_avg_reproj_error(M, _F_mine)
+        if care_val < care_min_val:
+            care_min_val = care_val
+            F_mine = np.copy(_F_mine)
+
+    return F_mine
+
+
 
 ## 1-1. Fundamental matrix computation
 
@@ -105,26 +131,58 @@ M_temple = np.loadtxt('temple_matches.txt')
 M_house = np.loadtxt('house_matches.txt')
 M_library = np.loadtxt('library_matches.txt')
 
+'''
+# find best num of points (like cross validation)
+best_num_of_points, min_error = 8, math.inf
+for i in range(8, 50):
+    print('num_of_points =', i)
+    num_of_points = i
+    # find best number of points (in RANSAC)
+    img1_size, img2_size = img_temple1.shape, img_temple2.shape
+    t_error = care.compute_avg_reproj_error(M_temple, compute_F_mine(M_temple))
+    print('Temple =', t_error)
+
+    img1_size, img2_size = img_house1.shape, img_house2.shape
+    h_error = care.compute_avg_reproj_error(M_house, compute_F_mine(M_house))
+    print('House =', h_error)
+
+    img1_size, img2_size = img_library1.shape, img_library2.shape
+    l_error = care.compute_avg_reproj_error(M_library, compute_F_mine(M_library))
+    print('Library =', l_error)
+
+    tot_error = t_error + h_error + l_error
+    if tot_error < min_error:
+        min_error = tot_error
+        best_num_of_points = num_of_points
+    print('total error =', tot_error, ', minimum error =', min_error)
+    print('best_num_of_points =', best_num_of_points)
+    print()
+    
+'''
+
+# best number of points = 8
+num_of_points = 8
+
 print('Average Reprojection Errors (temple1.png and temple2.png)')
 print('\tRaw =', care.compute_avg_reproj_error(M_temple, compute_F_raw(M_temple)))
 img1_size = img_temple1.shape
 img2_size = img_temple2.shape
 print('\tNorm =', care.compute_avg_reproj_error(M_temple, compute_F_norm(M_temple)))
-#print('\tMine =', care.compute_avg_reproj_error(M_temple, compute_F_mine(M_temple)))
+print('\tMine =', care.compute_avg_reproj_error(M_temple, compute_F_mine(M_temple)))
 
 print('Average Reprojection Errors (house1.png and house2.png)')
 print('\tRaw =', care.compute_avg_reproj_error(M_house, compute_F_raw(M_house)))
 img1_size = img_house1.shape
 img2_size = img_house2.shape
 print('\tNorm =', care.compute_avg_reproj_error(M_house, compute_F_norm(M_house)))
-#print('\tMine =', care.compute_avg_reproj_error(M_house, compute_F_mine(M_house)))
+print('\tMine =', care.compute_avg_reproj_error(M_house, compute_F_mine(M_house)))
 
 print('Average Reprojection Errors (library1.png and library2.png)')
 print('\tRaw =', care.compute_avg_reproj_error(M_library, compute_F_raw(M_library)))
 img1_size = img_library1.shape
 img2_size = img_library2.shape
 print('\tNorm =', care.compute_avg_reproj_error(M_library, compute_F_norm(M_library)))
-#print('\tMine =', care.compute_avg_reproj_error(M_library, compute_F_mine(M_library)))
+print('\tMine =', care.compute_avg_reproj_error(M_library, compute_F_mine(M_library)))
 
 print()
 
