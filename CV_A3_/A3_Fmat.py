@@ -2,7 +2,7 @@
 Computer vision assignment 3 by Yoseob Kim
 A3_Fmat.py
 Implementation of fundamental matrix, epipolar lines.
-* Status:       Epipolar line visualization remains.
+* Status:       Implement all specifications.
 * GitHub Link:  https://github.com/pseudowasabi/computer-vision-exercises/tree/master/CV_A3_
 '''
 
@@ -239,8 +239,8 @@ def visualize_epipolar_lines(img1, img2, M, title):
             cv2.line(_img2, (0, int(-line_img2[2] / line_img2[1])), (_img2.shape[1] - 1, int(-(line_img2[0] * (_img2.shape[1] - 1) + line_img2[2]) / line_img2[1])), color_info, 1)
 
             print('Red   - ' if _i == 0 else 'Green - ' if _i == 1 else 'Blue  - ', end='')
-            print('[L] point: (%.1f, %.1f), line: %.6f * x + %.6f * y + %.2f'%(x, y, line_img1[0], line_img1[1], line_img1[2]), end='\t')
-            print('[R] point: (%.1f, %.1f), line: %.6f * x + %.6f * y + %.2f'%(x_, y_, line_img2[0], line_img2[1], line_img2[2]))
+            print('[L] point: (%03d, %03d), line: %.6f * x + %.6f * y + %.2f'%(int(x), int(y), line_img1[0], line_img1[1], line_img1[2]), end='\t')
+            print('[R] point: (%03d, %03d), line: %.6f * x + %.6f * y + %.2f'%(int(x_), int(y_), line_img2[0], line_img2[1], line_img2[2]))
 
         print()
 
