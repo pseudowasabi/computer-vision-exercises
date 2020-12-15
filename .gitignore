@@ -11,3 +11,6 @@ CV_A3_/*.png
 CV_A3_/*.txt
 CV_A3_/compute_avg_reproj_error.py
 CV_A3_/__pycache__/
+CV_A4_/eval/
+CV_A4_/image/
+CV_A4_/sift/
